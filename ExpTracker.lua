@@ -18,30 +18,32 @@
 --]]
 
 ---@class KillTrack
-local KT = select(2, ...)
+KT = KT or {}
+
+local _G = getfenv()
 
 ---@class KillTrackExpTracker
 local ET = {
-    ---@type string[]
-    Strings = {
-        ---@diagnostic disable: undefined-field
-        _G.COMBATLOG_XPGAIN_EXHAUSTION1,       -- %s dies, you gain %d experience. (%s exp %s bonus)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION1_GROUP, -- %s dies, you gain %d experience. (%s exp %s bonus, +%d group bonus)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION1_RAID,  -- %s dies, you gain %d experience. (%s exp %s bonus, -%d raid penalty)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION2,       -- %s dies, you gain %d experience. (%s exp %s bonus)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION2_GROUP, -- %s dies, you gain %d experience. (%s exp %s bonus, +%d group bonus)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION2_RAID,  -- %s dies, you gain %d experience. (%s exp %s bonus, -%d raid penalty)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION4,       -- %s dies, you gain %d experience. (%s exp %s penalty)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION4_GROUP, -- %s dies, you gain %d experience. (%s exp %s penalty, +%d group bonus)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION4_RAID,  -- %s dies, you gain %d experience. (%s exp %s penalty, -%d raid penalty)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION5,       -- %s dies, you gain %d experience. (%s exp %s penalty)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION5_GROUP, -- %s dies, you gain %d experience. (%s exp %s penalty, +%d group bonus)
-        _G.COMBATLOG_XPGAIN_EXHAUSTION5_RAID,  -- %s dies, you gain %d experience. (%s exp %s penalty, -%d raid penalty)
-        _G.COMBATLOG_XPGAIN_FIRSTPERSON,       -- %s dies, you gain %d experience.
-        _G.COMBATLOG_XPGAIN_FIRSTPERSON_GROUP, -- %s dies, you gain %d experience. (+%d group bonus)
-        _G.COMBATLOG_XPGAIN_FIRSTPERSON_RAID   -- %s dies, you gain %d experience. (-%d raid penalty)
-        ---@diagnostic enable: undefined-field
-    }
+  ---@type string[]
+  Strings = {
+    ---@diagnostic disable: undefined-field
+    _G.COMBATLOG_XPGAIN_EXHAUSTION1,           -- %s dies, you gain %d experience. (%s exp %s bonus)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION1_GROUP,     -- %s dies, you gain %d experience. (%s exp %s bonus, +%d group bonus)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION1_RAID,      -- %s dies, you gain %d experience. (%s exp %s bonus, -%d raid penalty)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION2,           -- %s dies, you gain %d experience. (%s exp %s bonus)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION2_GROUP,     -- %s dies, you gain %d experience. (%s exp %s bonus, +%d group bonus)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION2_RAID,      -- %s dies, you gain %d experience. (%s exp %s bonus, -%d raid penalty)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION4,           -- %s dies, you gain %d experience. (%s exp %s penalty)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION4_GROUP,     -- %s dies, you gain %d experience. (%s exp %s penalty, +%d group bonus)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION4_RAID,      -- %s dies, you gain %d experience. (%s exp %s penalty, -%d raid penalty)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION5,           -- %s dies, you gain %d experience. (%s exp %s penalty)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION5_GROUP,     -- %s dies, you gain %d experience. (%s exp %s penalty, +%d group bonus)
+    _G.COMBATLOG_XPGAIN_EXHAUSTION5_RAID,      -- %s dies, you gain %d experience. (%s exp %s penalty, -%d raid penalty)
+    _G.COMBATLOG_XPGAIN_FIRSTPERSON,           -- %s dies, you gain %d experience.
+    _G.COMBATLOG_XPGAIN_FIRSTPERSON_GROUP,     -- %s dies, you gain %d experience. (+%d group bonus)
+    _G.COMBATLOG_XPGAIN_FIRSTPERSON_RAID       -- %s dies, you gain %d experience. (-%d raid penalty)
+    ---@diagnostic enable: undefined-field
+  }
 }
 
 KT.ExpTracker = ET
@@ -49,25 +51,26 @@ KT.ExpTracker = ET
 local initialized = false
 
 local function Initialize()
-    for i = 1, #ET.Strings do
-        ET.Strings[i] = ET.Strings[i]:gsub("([%(%)])", "%%%1"):gsub("%%%d?$?s", "(.-)"):gsub("%%%d?$?d", "(%%d+)")
-    end
-    initialized = true
+  for i = 1, getn( ET.Strings ) do
+    ET.Strings[ i ] = string.gsub( string.gsub( string.gsub( ET.Strings[ i ], "([%(%)])", "%%%1" ), "%%%d?$?s", "(.-)" ), "%%%d?$?d", "(%%d+)" )
+    --        ET.Strings[i] = ET.Strings[i]:gsub("([%(%)])", "%%%1"):gsub("%%%d?$?s", "(.-)"):gsub("%%%d?$?d", "(%%d+)")
+  end
+  initialized = true
 end
 
 ---@param message string
-function ET:CheckMessage(message)
-    if not initialized then Initialize() end
-    local name, exp
-    for i = 1, #self.Strings do
-        local str = self.Strings[i]
-        name, exp = message:match(str)
-        if name and exp then break end
-    end
+function ET:CheckMessage( message )
+  if not initialized then Initialize() end
+  local name, exp
+  for i = 1, getn( self.Strings ) do
+    local str = self.Strings[ i ]
+    name, exp = string.match( message, str )
+    if name and exp then break end
+  end
 
-    exp = tonumber(exp)
+  exp = tonumber( exp )
 
-    if type(name) == "string" and name ~= "" and type(exp) == "number" then
-        KT:SetExp(name, exp)
-    end
+  if type( name ) == "string" and name ~= "" and type( exp ) == "number" then
+    KT:SetExp( name, exp )
+  end
 end

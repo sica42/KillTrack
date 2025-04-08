@@ -1,18 +1,15 @@
-stds.wow = {
-  globals = {
-    _G = {
-      other_fields = true
-    },
-    SlashCmdList = {
-      other_fields = true
-    },
-    StaticPopupDialogs = {
-      other_fields = true
-    }
-  },
-  read_globals = {
-    "BackdropTemplateMixin",
-    "C_AddOns",
+{
+  "$schema": "https://raw.githubusercontent.com/LuaLS/vscode-lua/master/setting/schema.json",
+  "Lua.diagnostics.globals": [
+    "arg1",
+    "_",
+    "this",
+    "event",
+    "GetLocale",
+    "time",
+    "date",
+    "mod",
+    "getn",  
     "ChatTypeInfo",
     "CombatLogGetCurrentEventInfo",
     "COMBATLOG_XPGAIN_EXHAUSTION1",
@@ -42,6 +39,13 @@ stds.wow = {
     "GameMenuFrame",
     "GameTooltip",
     "GetAddOnMetadata",
+    "GetCursorPosition",
+    "getglobal",
+    "GetMinimapShape",
+    "GetNumPartyMembers",
+    "GetNumRaidMembers",
+    "GetRaidRosterInfo",    
+    "GetRealZoneText",
     "HideUIPanel",
     "InterfaceOptionsFrame",
     "InterfaceOptions_AddCategory",
@@ -49,22 +53,25 @@ stds.wow = {
     "IsAddOnLoaded",
     "IsControlKeyDown",
     "IsGUIDInGroup",
-    "IsInGroup",
-    "IsInRaid",
     "IsShiftKeyDown",
+    "LibStub",
+    "Minimap",
     "PlaySound",
     "RaidBossEmoteFrame",
     "RaidNotice_AddMessage",
     "RaidWarningFrame",
+    "SELFKILLOTHER",
     "SendChatMessage",
     "Settings",
-    "SOUNDKIT",
+    "SlashCmdList",
     "StaticPopup_Show",
+    "StaticPopupDialogs",
     "strsplit",
     "time",
     "TooltipDataProcessor",
     "UIParent",
     "UnitCanAttack",
+    "UNITDIESOTHER",
     "UnitExists",
     "UnitGUID",
     "UnitInParty",
@@ -72,34 +79,16 @@ stds.wow = {
     "UnitIsPlayer",
     "UnitIsTapDenied",
     "UnitName",
-    "UnitTokenFromGUID",
     "UnitXP",
     "UnitXPMax",
     "wipe",
     "WOW_PROJECT_ID",
     "WOW_PROJECT_MAINLINE"
-  }
-}
-
-stds.externs = {
-  read_globals = {
-    "LibStub"
-  }
-}
-
-std = "lua51+wow+externs"
-max_line_length = 120
-codes = true
-
-ignore = {
-  "212/self"
-}
-
-files = {
-}
-
-exclude_files = {
-  "libs/LibDataBroker-1-1",
-  ".luacheckrc",
-  ".release"
+  ],
+  "Lua.runtime.version": "Lua 5.1",
+  "Lua.workspace.checkThirdParty": false,
+  "Lua.workspace.ignoreDir": [],
+  "workspace.library": [],
+  "diagnostics.disable": [],
+  "Lua.hint.enable": true
 }

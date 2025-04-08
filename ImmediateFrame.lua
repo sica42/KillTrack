@@ -18,12 +18,12 @@
 --]]
 
 ---@class KillTrack
-local KT = select(2, ...)
+KT = KT or {}
 
 ---@class KillTrackImmediateFrame
 local I = {
-    Active = false,
-    Kills = 0
+  Active = false,
+  Kills = 0
 }
 
 KT.Immediate = I
@@ -31,96 +31,96 @@ KT.Immediate = I
 local frame
 
 local function SetupFrame()
-    if frame then return end
-    local G = KT.Global.IMMEDIATE
-    frame = CreateFrame("Frame", nil, UIParent, BackdropTemplateMixin and "BackdropTemplate")
-    frame:Hide()
-    frame:EnableMouse(true)
-    frame:SetMovable(true)
-    if G.POSITION.POINT then
-        frame:SetPoint(G.POSITION.POINT, UIParent, G.POSITION.RELATIVE, G.POSITION.X, G.POSITION.Y)
-    else
-        frame:SetPoint("CENTER")
-    end
-    frame:SetWidth(240)
-    frame:SetHeight(30)
+  if frame then return end
+  local G = KT.Global.IMMEDIATE
+  frame = CreateFrame( "Frame", nil, UIParent )
+  frame:Hide()
+  frame:EnableMouse( true )
+  frame:SetMovable( true )
+  if G.POSITION.POINT then
+    frame:SetPoint( G.POSITION.POINT, UIParent, G.POSITION.RELATIVE, G.POSITION.X, G.POSITION.Y )
+  else
+    frame:SetPoint( "CENTER", 0, 0 )
+  end
+  frame:SetWidth( 240 )
+  frame:SetHeight( 30 )
 
-    local bd = {
-        bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
-        edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-        tile = true,
-        edgeSize = 16,
-        tileSize = 32,
-        insets = {
-            left = 2.5,
-            right = 2.5,
-            top = 2.5,
-            bottom = 2.5
-        }
+  local bd = {
+    bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
+    edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
+    tile = true,
+    edgeSize = 16,
+    tileSize = 32,
+    insets = {
+      left = 2.5,
+      right = 2.5,
+      top = 2.5,
+      bottom = 2.5
     }
+  }
 
-    frame:SetBackdrop(bd)
+  frame:SetBackdrop( bd )
 
-    frame:SetScript("OnMouseDown", function(f) f:StartMoving() end)
-    frame:SetScript("OnMouseUp", function(f)
-        f:StopMovingOrSizing()
-        local point, _, relative, x, y = f:GetPoint()
-        G.POSITION.POINT = point
-        G.POSITION.RELATIVE = relative
-        G.POSITION.X = x
-        G.POSITION.Y = y
-    end)
+  frame:SetScript( "OnMouseDown", function() frame:StartMoving() end )
+  frame:SetScript( "OnMouseUp", function()
+    frame:StopMovingOrSizing()
+    local point, _, relative, x, y = frame:GetPoint()
+    G.POSITION.POINT = point
+    G.POSITION.RELATIVE = relative
+    G.POSITION.X = x
+    G.POSITION.Y = y
+  end )
 
-    ---@diagnostic disable-next-line: inject-field
-    frame.killLabel = frame:CreateFontString(nil, "OVERLAY", nil)
-    frame.killLabel:SetFont("Fonts\\FRIZQT__.TTF", 16, nil)
-    frame.killLabel:SetWidth(100)
-    --frame.killLabel:SetHeight(24)
-    frame.killLabel:SetPoint("LEFT", frame, "LEFT", 2, 0)
-    frame.killLabel:SetText("Kills so far:")
+  ---@diagnostic disable-next-line: inject-field
+  frame.killLabel = frame:CreateFontString( nil, "OVERLAY", nil )
+  frame.killLabel:SetFont( "Fonts\\FRIZQT__.TTF", 16, nil )
+  frame.killLabel:SetWidth( 100 )
+  --frame.killLabel:SetHeight(24)
+  frame.killLabel:SetPoint( "LEFT", frame, "LEFT", 2, 0 )
+  frame.killLabel:SetText( "Kills so far:" )
 
-    ---@diagnostic disable-next-line: inject-field
-    frame.killCount = frame:CreateFontString(nil, "OVERLAY", nil)
-    frame.killCount:SetFont("Fonts\\FRIZQT__.TTF", 16, nil)
-    frame.killCount:SetWidth(100)
-    --frame.killCount:SetHeight(24)
-    frame.killCount:SetPoint("RIGHT", frame, "RIGHT", -68, 0)
-    frame.killCount:SetJustifyH("RIGHT")
-    frame.killCount:SetText("0")
+  ---@diagnostic disable-next-line: inject-field
+  frame.killCount = frame:CreateFontString( nil, "OVERLAY", nil )
+  frame.killCount:SetFont( "Fonts\\FRIZQT__.TTF", 16, nil )
+  frame.killCount:SetWidth( 100 )
+  --frame.killCount:SetHeight(24)
+  frame.killCount:SetPoint( "RIGHT", frame, "RIGHT", -68, 0 )
+  frame.killCount:SetJustifyH( "RIGHT" )
+  frame.killCount:SetText( "0" )
 
-    ---@diagnostic disable-next-line: inject-field
-    frame.closeButton = CreateFrame("Button", nil, frame, "UIPanelButtonTemplate")
-    frame.closeButton:SetWidth(60)
-    frame.closeButton:SetHeight(24)
-    frame.closeButton:SetPoint("RIGHT", frame, "RIGHT", -3, 0)
-    frame.closeButton:SetText("Close")
-    frame.closeButton:SetScript("OnClick", function() I:Hide() end)
+  ---@diagnostic disable-next-line: inject-field
+  frame.closeButton = CreateFrame( "Button", nil, frame, "UIPanelButtonTemplate" )
+  frame.closeButton:SetWidth( 60 )
+  frame.closeButton:SetHeight( 24 )
+  frame.closeButton:SetPoint( "RIGHT", frame, "RIGHT", -3, 0 )
+  frame.closeButton:SetText( "Close" )
+  frame.closeButton:SetScript( "OnClick", function() I:Hide() end )
 end
 
 function I:Show()
-    if not frame then SetupFrame() end
-    self.Kills = 0
-    frame.killCount:SetText(tostring(self.Kills))
-    frame:Show()
-    self.Active = true
+  if not frame then SetupFrame() end
+  self.Kills = 0
+  frame.killCount:SetText( tostring( self.Kills ) )
+  frame:Show()
+  self.Active = true
 end
 
 function I:Hide()
-    frame:Hide()
-    self.Kills = 0
-    frame.killCount:SetText(tostring(self.Kills))
-    self.Active = false
+  frame:Hide()
+  self.Kills = 0
+  frame.killCount:SetText( tostring( self.Kills ) )
+  self.Active = false
 end
 
 function I:Toggle()
-    if frame and frame:IsShown() then
-        self:Hide()
-    else
-        self:Show()
-    end
+  if frame and frame:IsShown() then
+    self:Hide()
+  else
+    self:Show()
+  end
 end
 
 function I:AddKill()
-    self.Kills = self.Kills + 1
-    frame.killCount:SetText(tostring(self.Kills))
+  self.Kills = self.Kills + 1
+  frame.killCount:SetText( tostring( self.Kills ) )
 end

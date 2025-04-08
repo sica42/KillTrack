@@ -18,21 +18,21 @@
 --]]
 
 ---@class KillTrack
-local KT = select(2, ...)
+KT = KT or {}
 
 ---@class KillTrackTimer
 local T = {
-    Time = {
-        Start = 0,
-        Stop = 0
-    },
-    Running = false,
-    ---@enum KillTrackTimerState
-    State = {
-        START = 0,
-        UPDATE = 1,
-        STOP = 2
-    }
+  Time = {
+    Start = 0,
+    Stop = 0
+  },
+  Running = false,
+  ---@enum KillTrackTimerState
+  State = {
+    START = 0,
+    UPDATE = 1,
+    STOP = 2
+  }
 }
 
 KT.Timer = T
@@ -53,48 +53,51 @@ local TimerData = {}
 
 ---@alias KillTrackTimerCallback fun(data: KillTrackTimerData, state: KillTrackTimerState)
 
-T.Frame = CreateFrame("Frame")
+T.Frame = CreateFrame( "Frame" )
 
-local function TimeCheck(_, _)
-    if not T.Running then T.Frame:SetScript("OnUpdate", nil) return end
-    local now = time()
-    TimerData.Last = now
-    TimerData.Current = now - T.Time.Start
-    TimerData.Start = T.Time.Start
-    TimerData.Stop = T.Time.Stop
-    TimerData.Total = TimerData.Stop - TimerData.Start
-    TimerData.Left = TimerData.Total - TimerData.Current
-    TimerData.LeftFormat = KTT:FormatSeconds(TimerData.Left)
-    TimerData.Progress = TimerData.Current / TimerData.Total
-    T:RunCallback(T:GetAllData(), T.State.UPDATE)
-    if now >= T.Time.Stop then T:Stop() end
+local function TimeCheck( _, _ )
+  if not T.Running then
+    T.Frame:SetScript( "OnUpdate", nil )
+    return
+  end
+  local now = time()
+  TimerData.Last = now
+  TimerData.Current = now - T.Time.Start
+  TimerData.Start = T.Time.Start
+  TimerData.Stop = T.Time.Stop
+  TimerData.Total = TimerData.Stop - TimerData.Start
+  TimerData.Left = TimerData.Total - TimerData.Current
+  TimerData.LeftFormat = KTT:FormatSeconds( TimerData.Left )
+  TimerData.Progress = TimerData.Current / TimerData.Total
+  T:RunCallback( T:GetAllData(), T.State.UPDATE )
+  if now >= T.Time.Stop then T:Stop() end
 end
 
 ---@return KillTrackTimerData
 function T:GetAllData()
-    return KTT:TableCopy(TimerData)
+  return KTT:TableCopy( TimerData )
 end
 
 ---@param key any
 ---@param failsafe boolean
 ---@return any
-function T:GetData(key, failsafe)
-    local r
-    if failsafe then r = 0 end
-    if not TimerData.__DATA__ then if failsafe then return 0 else return nil end end
-    return TimerData.__DATA__[key] or r
+function T:GetData( key, failsafe )
+  local r
+  if failsafe then r = 0 end
+  if not TimerData.__DATA__ then if failsafe then return 0 else return nil end end
+  return TimerData.__DATA__[ key ] or r
 end
 
 ---@param key any
 ---@param value any
-function T:SetData(key, value)
-    if type(TimerData.__DATA__) ~= "table" then TimerData.__DATA__ = {} end
-    TimerData.__DATA__[key] = value
+function T:SetData( key, value )
+  if type( TimerData.__DATA__ ) ~= "table" then TimerData.__DATA__ = {} end
+  TimerData.__DATA__[ key ] = value
 end
 
 ---@return boolean
 function T:IsRunning()
-    return self.Running
+  return self.Running
 end
 
 ---@param seconds integer?
@@ -103,64 +106,64 @@ end
 ---@param callback KillTrackTimerCallback?
 ---@param data { [any]: any }?
 ---@return boolean
-function T:Start(seconds, minutes, hours, callback, data)
-    if self.Running then return false end
-    self.Running = true
-    self:Reset()
-    seconds = tonumber(seconds) or 0
-    minutes = tonumber(minutes) or 0
-    hours = tonumber(hours) or 0
-    seconds = seconds + minutes * 60 + hours * 60 ^ 2
-    if seconds <= 0 then
-        self.Running = false
-        KT:Msg("Time must be greater than zero.")
-        return false
+function T:Start( seconds, minutes, hours, callback, data )
+  if self.Running then return false end
+  self.Running = true
+  self:Reset()
+  seconds = tonumber( seconds ) or 0
+  minutes = tonumber( minutes ) or 0
+  hours = tonumber( hours ) or 0
+  seconds = seconds + minutes * 60 + hours * 60 ^ 2
+  if seconds <= 0 then
+    self.Running = false
+    KT:Msg( "Time must be greater than zero." )
+    return false
+  end
+  if type( callback ) == "function" then
+    self:SetCallback( callback )
+  end
+  if type( data ) == "table" then
+    for k, v in pairs( data ) do
+      self:SetData( k, v )
     end
-    if type(callback) == "function" then
-        self:SetCallback(callback)
-    end
-    if type(data) == "table" then
-        for k,v in pairs(data) do
-            self:SetData(k, v)
-        end
-    end
-    self.Time.Start = time()
-    self.Time.Stop = self.Time.Start + seconds
-    self:RunCallback(self:GetAllData(), self.State.START)
-    self.Frame:SetScript("OnUpdate", TimeCheck)
-    return true
+  end
+  self.Time.Start = time()
+  self.Time.Stop = self.Time.Start + seconds
+  self:RunCallback( self:GetAllData(), self.State.START )
+  self.Frame:SetScript( "OnUpdate", TimeCheck )
+  return true
 end
 
 function T:Stop()
-    if not self.Running then return end
-    self.Frame:SetScript("OnUpdate", nil)
-    self:RunCallback(self:GetAllData(), self.State.STOP)
-    self.Running = false
-    self.Time.Diff = self.Time.Stop - self.Time.Start
-    return self.Time.Diff
+  if not self.Running then return end
+  self.Frame:SetScript( "OnUpdate", nil )
+  self:RunCallback( self:GetAllData(), self.State.STOP )
+  self.Running = false
+  self.Time.Diff = self.Time.Stop - self.Time.Start
+  return self.Time.Diff
 end
 
 function T:Reset()
-    wipe(TimerData)
-    self.Time.Start = 0
-    self.Time.Stop = 0
+  KTT:Wipe( TimerData )
+  self.Time.Start = 0
+  self.Time.Stop = 0
 end
 
 ---@return KillTrackTimerCallback
 function T:GetCallback()
-    return self.Callback
+  return self.Callback
 end
 
 ---@param func KillTrackTimerCallback
-function T:SetCallback(func)
-    if type(func) ~= "function" then error("Argument 'func' must be of type 'function'.") end
-    self.Callback = func
+function T:SetCallback( func )
+  if type( func ) ~= "function" then error( "Argument 'func' must be of type 'function'." ) end
+  self.Callback = func
 end
 
 ---@param data KillTrackTimerData
 ---@param state KillTrackTimerState
-function T:RunCallback(data, state)
-    if type(data) ~= "table" then error("Argument 'data' must be of type 'table'.") end
-    local callback = self:GetCallback()
-    if callback then callback(data, state) end
+function T:RunCallback( data, state )
+  if type( data ) ~= "table" then error( "Argument 'data' must be of type 'table'." ) end
+  local callback = self:GetCallback()
+  if callback then callback( data, state ) end
 end

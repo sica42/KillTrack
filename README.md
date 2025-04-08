@@ -1,7 +1,7 @@
 KillTrack
 =========
 
-[![Build status](https://github.com/SharpWoW/KillTrack/workflows/Build/badge.svg)](https://github.com/SharpWoW/KillTrack/actions?query=workflow%3ABuild)
+#### This version has been modified to work with Turtle WoW (11200 client)
 
 KillTrack will keep track of how many times you've killed various mobs.
 

@@ -18,90 +18,109 @@
 --]]
 
 ---@class KillTrack
-local KT = select(2, ...)
+KT = KT or {}
 
 StaticPopupDialogs.KILLTRACK_FINISH = {
-    text = "%s entries removed.",
-    button1 = "Okay",
-    timeout = 10,
-    enterClicksFirstButton = true,
-    whileDead = true,
-    hideOnEscape = true
+  text = "%s entries removed.",
+  button1 = "Okay",
+  timeout = 10,
+  enterClicksFirstButton = true,
+  whileDead = true,
+  hideOnEscape = true
 }
 
 StaticPopupDialogs.KILLTRACK_DELETE = {
-    text = "Delete %s with ID %s?",
-    button1 = "Delete all",
-    button2 = "CANCEL",
-    button3 = "Character Only",
-    OnAccept = function() KT:Delete(KT.Temp.DeleteId) KT.MobList:UpdateMobs() KT.MobList:UpdateEntries() end,
-    OnAlt = function() KT:Delete(KT.Temp.DeleteId, true) KT.MobList:UpdateMobs() KT.MobList:UpdateEntries() end,
-    showAlert = true,
-    timeout = 10,
-    whileDead = true,
-    hideOnEscape = true
+  text = "Delete %s?",
+  button1 = "Delete all",
+  button2 = "CANCEL",
+  button3 = "Character Only",
+  OnAccept = function()
+    KT:Delete( KT.Temp.DeleteName )
+    KT.MobList:UpdateMobs()
+    KT.MobList:UpdateEntries()
+  end,
+  OnAlt = function()
+    KT:Delete( KT.Temp.DeleteName, true )
+    KT.MobList:UpdateMobs()
+    KT.MobList:UpdateEntries()
+  end,
+  showAlert = true,
+  timeout = 10,
+  whileDead = true,
+  hideOnEscape = true
 }
 
 StaticPopupDialogs.KILLTRACK_PURGE = {
-    text = "Remove all mob entries with their kill count below this threshold:",
-    button1 = "Purge",
-    button2 = "Cancel",
-    hasEditBox = true,
-    OnAccept = function(self)
-        KT:Purge(tonumber(self.editBox:GetText()) --[[@as integer]]) KT.MobList:UpdateMobs() KT.MobList:UpdateEntries()
-    end,
-    OnCancel = function() KT.Temp.Threshold = nil end,
-    OnShow = function(self)
-        if tonumber(KT.Temp.Threshold) then
-            self.editBox:SetText(tostring(KT.Temp.Threshold))
-        else
-            self.button1:Disable()
-        end
-    end,
-    EditBoxOnTextChanged = function(self)
-        if tonumber(self:GetText()) then
-            self:GetParent().button1:Enable()
-        else
-            self:GetParent().button1:Disable()
-        end
-    end,
-    showAlert = true,
-    enterClicksFirstButton = true,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true
+  text = "Remove all mob entries with their kill count below this threshold:",
+  button1 = "Purge",
+  button2 = "Cancel",
+  hasEditBox = true,
+  maxLetters = 6,
+  OnAccept = function( self )
+    KT:Purge( tonumber( self.editBox:GetText() ) --[[@as integer]] )
+    KT.MobList:UpdateMobs()
+    KT.MobList:UpdateEntries()
+  end,
+  OnCancel = function() KT.Temp.Threshold = nil end,
+  OnShow = function()
+    local editBox = getglobal( this:GetName() .. "EditBox" );
+    local button1 = getglobal( this:GetName() .. "Button1" );
+
+    if tonumber( KT.Temp.Threshold ) then
+      editBox:SetText( tostring( KT.Temp.Threshold ) )
+    else
+      button1:Disable()
+    end
+  end,
+  EditBoxOnTextChanged = function()
+    local button1 = getglobal( this:GetParent():GetName() .. "Button1" );
+    if tonumber( this:GetText() ) then
+      button1:Enable()
+    else
+      button1:Disable()
+    end
+  end,
+  EditBoxOnEscapePressed = function()
+		this:GetParent():Hide()
+	end,
+  showAlert = true,
+  enterClicksFirstButton = true,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true
 }
 
 StaticPopupDialogs.KILLTRACK_RESET = {
-    text = "Remove all mob entries from the database? THIS CANNOT BE REVERSED.",
-    button1 = "Yes",
-    button2 = "No",
-    OnAccept = function() KT:Reset() KT.MobList:UpdateMobs() KT.MobList:UpdateEntries() end,
-    showAlert = true,
-    enterClicksFirstButton = true,
-    timeout = 0,
-    whileDead = true,
-    hideOnEscape = true
+  text = "Remove all mob entries from the database? THIS CANNOT BE REVERSED.",
+  button1 = "Yes",
+  button2 = "No",
+  OnAccept = function()
+    KT:Reset()
+    KT.MobList:UpdateMobs()
+    KT.MobList:UpdateEntries()
+  end,
+  showAlert = true,
+  enterClicksFirstButton = true,
+  timeout = 0,
+  whileDead = true,
+  hideOnEscape = true
 }
 
----@param id integer|string
 ---@param name string
-function KT:ShowDelete(id, name)
-    id = tonumber(id) --[[@as integer]]
-    name = tostring(name)
-    if not id then error("'id' must be a number.") end
-    self.Temp.DeleteId = id
-    StaticPopup_Show("KILLTRACK_DELETE", name, id)
+function KT:ShowDelete( name )
+  name = tostring( name )
+  self.Temp.DeleteName = name
+  StaticPopup_Show( "KILLTRACK_DELETE", name )
 end
 
 ---@param threshold integer?
-function KT:ShowPurge(threshold)
-    if tonumber(threshold) then
-        self.Temp.Threshold = tonumber(threshold)
-    end
-    StaticPopup_Show("KILLTRACK_PURGE")
+function KT:ShowPurge( threshold )
+  if tonumber( threshold ) then
+    self.Temp.Threshold = tonumber( threshold )
+  end
+  StaticPopup_Show( "KILLTRACK_PURGE" )
 end
 
 function KT:ShowReset()
-    StaticPopup_Show("KILLTRACK_RESET")
+  StaticPopup_Show( "KILLTRACK_RESET" )
 end
