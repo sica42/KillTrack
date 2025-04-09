@@ -25,17 +25,6 @@ local KTT = {}
 
 KT.Tools = KTT
 
----@diagnostic disable-next-line: undefined-field
-if not string.gmatch then string.gmatch = string.gfind end
-
----@diagnostic disable-next-line: duplicate-set-field
-string.match = string.match or function( str, pattern )
-  if not str then return nil end
-
-  local _, _, r1, r2, r3, r4, r5, r6, r7, r8, r9 = string.find( str, pattern )
-  return r1, r2, r3, r4, r5, r6, r7, r8, r9
-end
-
 ------------------
 -- NUMBER TOOLS --
 ------------------
@@ -136,28 +125,6 @@ function KTT:Wipe( table )
   end
 end
 
-function KTT:Dump( o )
-  if not o then return "nil" end
-  if type( o ) ~= 'table' then return tostring( o ) end
-
-  local entries = 0
-  local s = "{"
-
-  for k, v in pairs( o ) do
-    if (entries == 0) then s = s .. " " end
-
-    local key = type( k ) ~= "number" and '"' .. k .. '"' or k
-
-    if (entries > 0) then s = s .. ", " end
-
-    s = s .. "[" .. key .. "] = " .. KTT:Dump( v )
-    entries = entries + 1
-  end
-
-  if (entries > 0) then s = s .. " " end
-  return s .. "}"
-end
-
 --------------------
 -- DATETIME TOOLS --
 --------------------
@@ -175,17 +142,6 @@ end
 -- OTHER TOOLS --
 -----------------
 
-local ssplit = strsplit
-
----@param guid string?
----@return integer?
-function KTT.GUIDToID( guid )
-  if not guid then return nil end
-  -- local id = guid:match("^%w+%-0%-%d+%-%d+%-%d+%-(%d+)%-[A-Z%d]+$")
-  local _, _, _, _, _, id = ssplit( "-", guid )
-  return tonumber( id )
-end
-
 ---@return boolean
 function KTT.IsInParty()
   return GetNumRaidMembers() == 0 and GetNumPartyMembers() > 0
@@ -199,4 +155,15 @@ end
 ---@return boolean
 function KTT.IsInGroup()
   return KTT.IsInParty() or KTT.IsInRaid()
+end
+
+---@diagnostic disable-next-line: undefined-field
+if not string.gmatch then string.gmatch = string.gfind end
+
+---@diagnostic disable-next-line: duplicate-set-field
+string.match = string.match or function( str, pattern )
+  if not str then return nil end
+
+  local _, _, r1, r2, r3, r4, r5, r6, r7, r8, r9 = string.find( str, pattern )
+  return r1, r2, r3, r4, r5, r6, r7, r8, r9
 end

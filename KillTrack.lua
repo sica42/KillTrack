@@ -21,13 +21,11 @@
 local NAME = "KillTrack"
 
 ---@class KillTrack
----@field PlayerName string
+---@field PlayerName string?
 local KT = KT or {}
---local KT = select(2, ...)
 
 ---@class KillTrackMobData
 ---@field Kills integer
----@field Name string
 ---@field ZoneName string
 ---@field LastKillAt integer?
 ---@field AchievCount integer
@@ -35,21 +33,9 @@ local KT = KT or {}
 
 ---@class KillTrackCharMobData
 ---@field Kills integer
----@field Name string
----@field ZoneName string
 ---@field LastKillAt integer?
 
 _G = getfenv()
---_G[NAME] = KT
-
--- Upvalue some functions used in CLEU
-local IsGUIDInGroup = IsGUIDInGroup
-local UnitGUID = UnitGUID
-local UnitIsTapDenied = UnitIsTapDenied
---local UnitTokenFromGUID = UnitTokenFromGUID
-local CombatLogGetCurrentEventInfo = CombatLogGetCurrentEventInfo
-local GetServerTime = GetServerTime
-
 local NO_NAME = "<No Name>"
 
 KT.Name = NAME
@@ -69,7 +55,7 @@ KT.Events = {}
 ---@field ACHIEV_THRESHOLD integer
 ---@field COUNT_GROUP boolean
 ---@field SHOW_EXP boolean
----@field MOBS { [integer]: KillTrackMobData }
+---@field MOBS { [string]: KillTrackMobData }
 ---@field IMMEDIATE { POSITION: KillTrackImmediatePosition, THRESHOLD: integer, FILTER: string? }
 ---@field BROKER { SHORT_TEXT: boolean, MINIMAP: { hide: boolean } }
 ---@field DISABLE_DUNGEONS boolean
@@ -79,7 +65,7 @@ KT.Events = {}
 KT.Global = {}
 
 ---@class KillTrackCharGlobal
----@field MOBS { [integer]: KillTrackCharMobData }
+---@field MOBS { [string]: KillTrackCharMobData }
 KT.CharGlobal = {}
 
 ---@class KillTrackTemp
@@ -111,16 +97,10 @@ KT.Defaults = {
   DateTimeFormat = "%Y-%m-%d %H:%M:%S"
 }
 
-KT.RosterDmg = {}
-KT.PetDmg = {}
-
 ---@type KillTrackExpTracker
 local ET
 
 local KTT = KT.Tools
-
--- Upvalue as it's used in CLEU
-local GUIDToID = KTT.GUIDToID
 
 ---@type { [string]: string? }
 local FirstDamage = {} -- Tracks first damage to a mob registered by CLEU
@@ -137,67 +117,6 @@ local HasGroupDamage = {} -- Tracks whether a group member has dealt damage to a
 ---@type { [string]: boolean? }
 local DamageValid = {} -- Determines if mob is tapped by player/group
 
-local combat_log_damage_events = {}
-do
-  local prefixes = { "SWING", "RANGE", "SPELL", "SPELL_PERIODIC", "SPELL_BUILDING" }
-  local suffixes = { "DAMAGE", "DRAIN", "LEECH", "INSTAKILL" }
-  for _, prefix in pairs( prefixes ) do
-    for _, suffix in pairs( suffixes ) do
-      combat_log_damage_events[ prefix .. "_" .. suffix ] = true
-    end
-  end
-end
-
-if KT.Version == "@" .. "project-version" .. "@" then
-  KT.Version = "Development"
-  KT.Debug = true
-end
-
-if not UnitTokenFromGUID then
-  local units = {
-    "player",
-    "vehicle",
-    "pet",
-    "party1", "party2", "party3", "party4",
-    "partypet1", "partypet2", "partypet3", "partypet4"
-  }
-  -- Multiple loops to get the same ordering as mainline API
-  for i = 1, 40 do
-    units[ getn( units ) + 1 ] = "raid" .. i
-  end
-  for i = 1, 40 do
-    units[ getn( units ) + 1 ] = "raidpet" .. i
-  end
-  for i = 1, 40 do
-    units[ getn( units ) + 1 ] = "nameplate" .. i
-  end
-  for i = 1, 5 do
-    units[ getn( units ) + 1 ] = "arena" .. i
-  end
-  for i = 1, 5 do
-    units[ getn( units ) + 1 ] = "arenapet" .. i
-  end
-  for i = 1, 8 do
-    units[ getn( units ) + 1 ] = "boss" .. i
-  end
-  units[ getn( units ) + 1 ] = "target"
-  units[ getn( units ) + 1 ] = "focus"
-  units[ getn( units ) + 1 ] = "npc"
-  units[ getn( units ) + 1 ] = "mouseover"
-  units[ getn( units ) + 1 ] = "softenemy"
-  units[ getn( units ) + 1 ] = "softfriend"
-  units[ getn( units ) + 1 ] = "softinteract"
-
-  UnitTokenFromGUID = function( guid )
-    for _, unit in ipairs( units ) do
-      if UnitGUID( unit ) == guid then
-        return unit
-      end
-    end
-    return nil
-  end
-end
-
 ---@param event string
 function KT:OnEvent( event )
   if self.Events[ event ] then
@@ -205,95 +124,95 @@ function KT:OnEvent( event )
   end
 end
 
------@param self KillTrack
------@param name string
 function KT.Events.ADDON_LOADED()
-  local self = KT
   if arg1 ~= NAME then return end
+
   ET = KT.ExpTracker
   if type( _G[ "KILLTRACK" ] ) ~= "table" then
     _G[ "KILLTRACK" ] = {}
   end
-  self.Global = _G[ "KILLTRACK" ]
-  if type( self.Global.LOAD_MESSAGE ) ~= "boolean" then
-    self.Global.LOAD_MESSAGE = false
+  KT.Global = _G[ "KILLTRACK" ]
+  if type( KT.Global.LOAD_MESSAGE ) ~= "boolean" then
+    KT.Global.LOAD_MESSAGE = false
   end
-  if type( self.Global.PRINTKILLS ) ~= "boolean" then
-    self.Global.PRINTKILLS = false
+  if type( KT.Global.PRINTKILLS ) ~= "boolean" then
+    KT.Global.PRINTKILLS = false
   end
-  if type( self.Global.PRINTNEW ) ~= "boolean" then
-    self.Global.PRINTNEW = false
+  if type( KT.Global.PRINTNEW ) ~= "boolean" then
+    KT.Global.PRINTNEW = false
   end
-  if type( self.Global.ACHIEV_THRESHOLD ) ~= "number" then
-    self.Global.ACHIEV_THRESHOLD = 1000
+  if type( KT.Global.ACHIEV_THRESHOLD ) ~= "number" then
+    KT.Global.ACHIEV_THRESHOLD = 1000
   end
-  if type( self.Global.COUNT_GROUP ) ~= "boolean" then
-    self.Global.COUNT_GROUP = false
+  if type( KT.Global.COUNT_GROUP ) ~= "boolean" then
+    KT.Global.COUNT_GROUP = false
   end
-  if type( self.Global.SHOW_EXP ) ~= "boolean" then
-    self.Global.SHOW_EXP = false
+  if type( KT.Global.SHOW_EXP ) ~= "boolean" then
+    KT.Global.SHOW_EXP = false
   end
-  if type( self.Global.MOBS ) ~= "table" then
-    self.Global.MOBS = {}
+  if type( KT.Global.MOBS ) ~= "table" then
+    KT.Global.MOBS = {}
   end
-  if type( self.Global.IMMEDIATE ) ~= "table" then
-    self.Global.IMMEDIATE = {}
+  if type( KT.Global.IMMEDIATE ) ~= "table" then
+    KT.Global.IMMEDIATE = {}
   end
-  if type( self.Global.IMMEDIATE.POSITION ) ~= "table" then
-    self.Global.IMMEDIATE.POSITION = {}
+  if type( KT.Global.IMMEDIATE.POSITION ) ~= "table" then
+    KT.Global.IMMEDIATE.POSITION = {}
   end
-  if type( self.Global.IMMEDIATE.THRESHOLD ) ~= "number" then
-    self.Global.IMMEDIATE.THRESHOLD = 0
+  if type( KT.Global.IMMEDIATE.THRESHOLD ) ~= "number" then
+    KT.Global.IMMEDIATE.THRESHOLD = 0
   end
-  if type( self.Global.BROKER ) ~= "table" then
-    self.Global.BROKER = {}
+  if type( KT.Global.BROKER ) ~= "table" then
+    KT.Global.BROKER = {}
   end
-  if type( self.Global.BROKER.SHORT_TEXT ) ~= "boolean" then
-    self.Global.BROKER.SHORT_TEXT = false
+  if type( KT.Global.BROKER.SHORT_TEXT ) ~= "boolean" then
+    KT.Global.BROKER.SHORT_TEXT = false
   end
-  if type( self.Global.BROKER.MINIMAP ) ~= "table" then
-    self.Global.BROKER.MINIMAP = {}
+  if type( KT.Global.BROKER.MINIMAP ) ~= "table" then
+    KT.Global.BROKER.MINIMAP = {}
   end
-  if type( self.Global.DISABLE_DUNGEONS ) ~= "boolean" then
-    self.Global.DISABLE_DUNGEONS = false
+  if type( KT.Global.DISABLE_DUNGEONS ) ~= "boolean" then
+    KT.Global.DISABLE_DUNGEONS = false
   end
-  if type( self.Global.DISABLE_RAIDS ) ~= "boolean" then
-    self.Global.DISABLE_RAIDS = false
+  if type( KT.Global.DISABLE_RAIDS ) ~= "boolean" then
+    KT.Global.DISABLE_RAIDS = false
   end
-  if type( self.Global.TOOLTIP ) ~= "boolean" then
-    self.Global.TOOLTIP = true
+  if type( KT.Global.TOOLTIP ) ~= "boolean" then
+    KT.Global.TOOLTIP = true
   end
-  if type( self.Global.DATETIME_FORMAT ) ~= "string" then
-    self.Global.DATETIME_FORMAT = self.Defaults.DateTimeFormat
+  if type( KT.Global.DATETIME_FORMAT ) ~= "string" then
+    KT.Global.DATETIME_FORMAT = KT.Defaults.DateTimeFormat
   end
   if type( _G[ "KILLTRACK_CHAR" ] ) ~= "table" then
     _G[ "KILLTRACK_CHAR" ] = {}
   end
-  self.CharGlobal = _G[ "KILLTRACK_CHAR" ]
-  if type( self.CharGlobal.MOBS ) ~= "table" then
-    self.CharGlobal.MOBS = {}
+  KT.CharGlobal = _G[ "KILLTRACK_CHAR" ]
+  if type( KT.CharGlobal.MOBS ) ~= "table" then
+    KT.CharGlobal.MOBS = {}
   end
-  self.PlayerName = UnitName( "player" )
+  KT.PlayerName = UnitName( "player" )
 
-  self.Session.Start = time()
-  self.Broker:OnLoad()
+  KT.Session.Start = time()
+  KT.Broker:OnLoad()
 end
 
 function KT.Events.PLAYER_LOGIN()
   if KT.Global.LOAD_MESSAGE then
     KT:Msg( "AddOn Loaded!" )
   end
+
+  KT:ToggleCountMode( true )
 end
 
 function KT.Events.CHAT_MSG_COMBAT_PET_HITS()
   local target = string.match( arg1, "^%S+ %S+ (.+) for" )
-  KT.PetDmg[ target ] = true
+  HasPlayerDamage[ target ] = true
 end
 
 function KT.Events.CHAT_MSG_COMBAT_PARTY_HITS()
   if not KTT.IsInGroup() or not KT.Global.COUNT_GROUP then return end
   local target = string.match( arg1, "^%S+ %S+ (.+) for" )
-  KT.RosterDmg[ target ] = true
+  HasGroupDamage[ target ] = true
 end
 
 function KT.Events.CHAT_MSG_SPELL_PARTY_DAMAGE()
@@ -304,7 +223,7 @@ function KT.Events.CHAT_MSG_SPELL_PARTY_DAMAGE()
   end
 
   if target then
-    KT.RosterDmg[ target ] = true
+    HasGroupDamage[ target ] = true
   end
 end
 
@@ -321,100 +240,18 @@ function KT.Events.CHAT_MSG_COMBAT_HOSTILE_DEATH()
   re = string.gsub( re, "%.$", ".$" )
   target = string.match( arg1, re )
 
-  if target and KT.PetDmg[ target ] then
+  if target and HasPlayerDamage[ target ] then
     KT:AddKill( target )
     return
   end
 
   if KTT.IsInGroup() and KT.Global.COUNT_GROUP then
-    if target and KT.RosterDmg[ target ] then
+    if target and HasGroupDamage[ target ] then
       KT:AddKill( target )
       return
     end
   end
 end
-
---[[
----@param self KillTrack
-function KT.Events.COMBAT_LOG_EVENT_UNFILTERED( self )
-  print( "combat log event" )
-  local _, event, _, s_guid, _, _, _, d_guid, d_name, _, _ = CombatLogGetCurrentEventInfo()
-  if combat_log_damage_events[ event ] then
-    if FirstDamage[ d_guid ] == nil then
-      -- s_guid is (probably) the player who first damaged this mob and probably has the tag
-      FirstDamage[ d_guid ] = s_guid
-    end
-
-    LastDamage[ d_guid ] = s_guid
-
-    if s_guid == self.PlayerGUID or s_guid == UnitGUID( "pet" ) then
-      HasPlayerDamage[ d_guid ] = true
-    elseif self:IsInGroup( s_guid ) then
-      HasGroupDamage[ d_guid ] = true
-    end
-
-    if not DamageValid[ d_guid ] then
-      -- if DamageValid returns true for a GUID, we can tell with 100% certainty that it's valid
-      -- But this relies on one of the valid unit names currently being the damaged mob
-
-      local d_unit = UnitTokenFromGUID( d_guid )
-
-      if not d_unit then return end
-
-      DamageValid[ d_guid ] = not UnitIsTapDenied( d_unit )
-    end
-
-    return
-  end
-
-  if event ~= "UNIT_DIED" then return end
-
-  -- Perform solo/group checks
-  local d_id = GUIDToID( d_guid )
-  local firstDamage = FirstDamage[ d_guid ]
-  local lastDamage = LastDamage[ d_guid ]
-  local damageValid = DamageValid[ d_guid ]
-  local hasPlayerDamage = HasPlayerDamage[ d_guid ]
-  local hasGroupDamage = HasGroupDamage[ d_guid ]
-  FirstDamage[ d_guid ] = nil
-  LastDamage[ d_guid ] = nil
-  DamageValid[ d_guid ] = nil
-  HasPlayerDamage[ d_guid ] = nil
-  HasGroupDamage[ d_guid ] = nil
-
-  -- If we can't identify the mob there's no point continuing
-  if d_id == nil or d_id == 0 then return end
-
-  local petGUID = UnitGUID( "pet" )
-  local firstByPlayer = firstDamage == self.PlayerGUID or firstDamage == petGUID
-  local firstByGroup = self:IsInGroup( firstDamage )
-  local lastByPlayer = lastDamage == self.PlayerGUID or lastDamage == petGUID
-
-  -- The checks when DamageValid is non-false are not 100% failsafe
-  -- Scenario: You deal the killing blow to an already tapped mob <- Would count as kill with current code
-
-  -- If damageValid is false, it means tap is denied on the mob and there is no way the kill would count
-  if damageValid == false then return end
-
-  -- If neither the player not group was involved in the battle, we don't count the kill
-  if not hasPlayerDamage and not hasGroupDamage then return end
-
-  if damageValid == nil and not firstByPlayer and not firstByGroup then
-    -- If we couldn't get a proper tapped status and the first recorded damage was not by player or group,
-    -- we can't be sure the kill was valid, so ignore it
-    return
-  end
-
-  if not lastByPlayer and not self.Global.COUNT_GROUP then
-    return -- Player or player's pet did not deal the killing blow and addon only tracks player kills
-  end
-
-  self:AddKill( d_name )
-  if self.Timer:IsRunning() then
-    self.Timer:SetData( "Kills", self.Timer:GetData( "Kills", true ) + 1 )
-  end
-end
-]]
 
 function KT.Events.CHAT_MSG_COMBAT_XP_GAIN()
   ET:CheckMessage( arg1 )
@@ -425,8 +262,8 @@ end
 function KT.Events.ENCOUNTER_START( self, _, _, _, size )
   print("encounter start")
   if (self.Global.DISABLE_DUNGEONS and size == 5) or (self.Global.DISABLE_RAIDS and size > 5) then
-    self.Frame:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED" )
-    self.Frame:UnregisterEvent( "UPDATE_MOUSEOVER_UNIT" )
+    --self.Frame:UnregisterEvent( "COMBAT_LOG_EVENT_UNFILTERED" )
+    --self.Frame:UnregisterEvent( "UPDATE_MOUSEOVER_UNIT" )
     self.Frame:UnregisterEvent( "CHAT_MSG_COMBAT_XP_GAIN" )
   end
 end
@@ -436,8 +273,8 @@ end
 function KT.Events.ENCOUNTER_END( self, _, _, _, size )
   print("encounter end")
   if (self.Global.DISABLE_DUNGEONS and size == 5) or (self.Global.DISABLE_RAIDS and size > 5) then
-    self.Frame:RegisterEvent( "COMBAT_LOG_EVENT_UNFILTERED" )
-    self.Frame:RegisterEvent( "UPDATE_MOUSEOVER_UNIT" )
+    --self.Frame:RegisterEvent( "COMBAT_LOG_EVENT_UNFILTERED" )
+    --self.Frame:RegisterEvent( "UPDATE_MOUSEOVER_UNIT" )
     self.Frame:RegisterEvent( "CHAT_MSG_COMBAT_XP_GAIN" )
   end
 end
@@ -446,8 +283,10 @@ function KT.tooltip_enhancer( unit )
   if KT.Global.TOOLTIP and not KT.tooltipModified then
     if unit and not UnitIsPlayer( unit ) and UnitCanAttack( "player", unit ) then
       KT.tooltipModified = true
-      local mob, charMob = KT:InitMob( UnitName( unit ) )
-      local gKills, cKills = mob.Kills, charMob.Kills
+      local mob, charMob = KT:GetMob( UnitName( unit ) )
+      if not mob then return end
+      local gKills = mob.Kills
+      local cKills = charMob and charMob.Kills or 0
       local exp = mob.Exp
 
       if gKills > 0 or cKills > 0 then
@@ -557,39 +396,46 @@ function KT:ClearImmediateFilter()
   KT:Msg( "Immediate filter cleared!" )
 end
 
-function KT:ToggleCountMode()
-  self.Global.COUNT_GROUP = not self.Global.COUNT_GROUP
-  if self.Global.COUNT_GROUP then
-    self:Msg( "Now counting kills for every player in the group (party/raid)!" )
+---@param init boolean?
+function KT:ToggleCountMode( init )
+  if init then
+    if self.Global.COUNT_GROUP then
+      self.Frame:RegisterEvent( "CHAT_MSG_COMBAT_PARTY_HITS" )
+      ---@diagnostic disable-next-line: param-type-mismatch
+      self.Frame:RegisterEvent( "CHAT_MSG_SPELL_PARTY_DAMAGE" )
+    else
+      self.Frame:UnregisterEvent( "CHAT_MSG_COMBAT_PARTY_HITS" )
+      ---@diagnostic disable-next-line: param-type-mismatch
+      self.Frame:UnregisterEvent( "CHAT_MSG_SPELL_PARTY_DAMAGE" )
+    end
   else
-    self:Msg( "Now counting your own killing blows ONLY." )
+    self.Global.COUNT_GROUP = not self.Global.COUNT_GROUP
+    if self.Global.COUNT_GROUP then
+      self:Msg( "Now counting kills for every player in the group (party/raid)!" )
+    else
+      self:Msg( "Now counting your own killing blows ONLY." )
+    end
   end
 end
 
------@param id string
 ---@param name string
 ---@return KillTrackMobData
 ---@return KillTrackCharMobData
 function KT:InitMob( name )
-  local id = name
   local zone_name = GetRealZoneText()
 
   if type( self.Global.MOBS[ name ] ) ~= "table" then
-    self.Global.MOBS[ name ] = { Name = name, ZoneName = zone_name, Kills = 0, AchievCount = 0 }
+    self.Global.MOBS[ name ] = { ZoneName = zone_name, Kills = 0, AchievCount = 0 }
     if self.Global.PRINTNEW then
       self:Msg( ("Created new entry for %q"):format( name ) )
     end
---  elseif self.Global.MOBS[ name ].Name ~= name then
-    --self.Global.MOBS[ name ].Name = name
   end
 
   if type( self.CharGlobal.MOBS[ name ] ) ~= "table" then
-    self.CharGlobal.MOBS[ name ] = { Name = name, ZoneName = zone_name, Kills = 0 }
+    self.CharGlobal.MOBS[ name ] = { Kills = 0 }
     if self.Global.PRINTNEW then
       self:Msg( ("Created new entry for %q on this character."):format( name ) )
     end
-  --elseif self.CharGlobal.MOBS[ id ].Name ~= name then
---    self.CharGlobal.MOBS[ id ].Name = name
   end
 
   return self.Global.MOBS[ name ], self.CharGlobal.MOBS[ name ]
@@ -598,18 +444,17 @@ end
 ---@param name string
 function KT:AddKill( name )
   if not name then return end
-  local id = name
-  local current_time = time() --GetServerTime()
+  local current_time = time()
   self:InitMob( name )
-  local globalMob = self.Global.MOBS[ id ]
-  local charMob = self.CharGlobal.MOBS[ id ]
-  globalMob.Kills = self.Global.MOBS[ id ].Kills + 1
+  local globalMob = self.Global.MOBS[ name ]
+  local charMob = self.CharGlobal.MOBS[ name ]
+  globalMob.Kills = self.Global.MOBS[ name ].Kills + 1
   globalMob.LastKillAt = current_time
-  charMob.Kills = self.CharGlobal.MOBS[ id ].Kills + 1
+  charMob.Kills = self.CharGlobal.MOBS[ name ].Kills + 1
   charMob.LastKillAt = current_time
 
-  KT.RosterDmg[ name ] = nil
-  KT.PetDmg[ name ] = nil
+  HasGroupDamage[ name ] = nil
+  HasPlayerDamage[ name ] = nil
 
   self:AddSessionKill( name )
   if self.Timer:IsRunning() then
@@ -617,8 +462,8 @@ function KT:AddKill( name )
   end
 
   if self.Global.PRINTKILLS then
-    local kills = self.Global.MOBS[ id ].Kills
-    local cKills = self.CharGlobal.MOBS[ id ].Kills
+    local kills = self.Global.MOBS[ name ].Kills
+    local cKills = self.CharGlobal.MOBS[ name ].Kills
     self:Msg( string.format( "Updated %q, new kill count: %d. Kill count on this character: %d", name, kills, cKills ) )
   end
 
@@ -628,6 +473,7 @@ function KT:AddKill( name )
     if filterPass then
       self.Immediate:AddKill()
       if self.Global.IMMEDIATE.THRESHOLD > 0 and mod( self.Immediate.Kills, self.Global.IMMEDIATE.THRESHOLD ) == 0 then
+        ---@diagnostic disable-next-line: param-type-mismatch
         PlaySound( "RaidWarning" )
         PlaySound( "PVPTHROUGHQUEUE" )
         RaidWarningFrame:AddMessage( string.format( "%d KILLS!", self.Immediate.Kills ) )
@@ -635,28 +481,24 @@ function KT:AddKill( name )
     end
   end
   if self.Global.ACHIEV_THRESHOLD <= 0 then return end
-  if type( self.Global.MOBS[ id ].AchievCount ) ~= "number" then
-    self.Global.MOBS[ id ].AchievCount = floor( self.Global.MOBS[ id ].Kills / self.Global.ACHIEV_THRESHOLD )
-    if self.Global.MOBS[ id ].AchievCount >= 1 then
-      self:KillAlert( self.Global.MOBS[ id ] )
+  if type( self.Global.MOBS[ name ].AchievCount ) ~= "number" then
+    self.Global.MOBS[ name ].AchievCount = floor( self.Global.MOBS[ name ].Kills / self.Global.ACHIEV_THRESHOLD )
+    if self.Global.MOBS[ name ].AchievCount >= 1 then
+      self:KillAlert( name, self.Global.MOBS[ name ] )
     end
   else
-    local achievCount = self.Global.MOBS[ id ].AchievCount
-    self.Global.MOBS[ id ].AchievCount = floor( self.Global.MOBS[ id ].Kills / self.Global.ACHIEV_THRESHOLD )
-    if self.Global.MOBS[ id ].AchievCount > achievCount then
-      self:KillAlert( self.Global.MOBS[ id ] )
+    local achievCount = self.Global.MOBS[ name ].AchievCount
+    self.Global.MOBS[ name ].AchievCount = floor( self.Global.MOBS[ name ].Kills / self.Global.ACHIEV_THRESHOLD )
+    if self.Global.MOBS[ name ].AchievCount > achievCount then
+      self:KillAlert( name, self.Global.MOBS[ name ] )
     end
   end
 end
 
----@param id integer
----@param name string?
+---@param name string
 ---@param globalCount integer
 ---@param charCount integer
-function KT:SetKills( id, name, globalCount, charCount )
-  if type( id ) ~= "number" then
-    error( "'id' argument must be a number" )
-  end
+function KT:SetKills( name, globalCount, charCount )
 
   if type( globalCount ) ~= "number" then
     error( "'globalCount' argument must be a number" )
@@ -669,10 +511,10 @@ function KT:SetKills( id, name, globalCount, charCount )
   name = name or NO_NAME
 
   self:InitMob( name )
-  self.Global.MOBS[ id ].Kills = globalCount
-  self.CharGlobal.MOBS[ id ].Kills = charCount
+  self.Global.MOBS[ name ].Kills = globalCount
+  self.CharGlobal.MOBS[ name ].Kills = charCount
 
-  self:Msg( ("Updated %q to %d global and %d character kills"):format( name, globalCount, charCount ) )
+  self:Msg( string.format("Updated %q to %d global and %d character kills", name, globalCount, charCount ) )
 end
 
 ---@param name string
@@ -688,8 +530,8 @@ end
 ---@param name string
 ---@param exp integer|string
 function KT:SetExp( name, exp )
-  for _, mob in pairs( self.Global.MOBS ) do
-    if mob.Name == name then mob.Exp = tonumber( exp ) end
+  for key, mob in pairs( self.Global.MOBS ) do
+    if key == name then mob.Exp = tonumber( exp ) end
   end
 end
 
@@ -758,26 +600,25 @@ function KT:GetSessionStats()
   return kps, kpm, kph, session
 end
 
----@param name string
+---@param name string?
 function KT:PrintKills( name )
   local found = false
   local gKills = 0
   local cKills = 0
   local lastKillAt = nil
-  --if type( identifier ) ~= "string" and type( identifier ) ~= "number" then identifier = NO_NAME end
-  for k, v in pairs( self.Global.MOBS ) do
-    if type( v ) == "table" and (tostring( k ) == tostring( name ) or v.Name == name) then
-      name = v.Name
-      gKills = v.Kills
-      if type( v.LastKillAt ) == "number" then
-        lastKillAt = KTT:FormatDateTime( v.LastKillAt )
-      end
-      if self.CharGlobal.MOBS[ k ] then
-        cKills = self.CharGlobal.MOBS[ k ].Kills
-      end
+
+  if name and self.Global.MOBS[ name ] then
+    gKills = self.Global.MOBS[ name ].Kills
+    if type( self.Global.MOBS[ name ].LastKillAt ) == "number" then
+      lastKillAt = KTT:FormatDateTime( self.Global.MOBS[ name ].LastKillAt )
       found = true
     end
   end
+
+  if name and self.CharGlobal.MOBS[ name ] then
+    cKills = self.CharGlobal.MOBS[ name ].Kills
+  end
+
   if found then
     self:Msg( string.format( "You have killed %q %d times in total, %d times on this character", name, gKills, cKills ) )
     if lastKillAt then
@@ -785,7 +626,7 @@ function KT:PrintKills( name )
     end
   else
     if UnitExists( "target" ) and not UnitIsPlayer( "target" ) then
-      name = UnitName( "target" )
+      name = UnitName( "target" ) or NO_NAME
     end
     self:Msg( string.format( "Unable to find %q in mob database.", tostring( name ) ) )
   end
@@ -812,10 +653,11 @@ function KT:DebugMsg( msg )
   self:Msg( "[DEBUG] " .. msg )
 end
 
+---@param name string
 ---@param mob KillTrackMobData
-function KT:KillAlert( mob )
+function KT:KillAlert( name, mob )
   local data = {
-    Text = string.format("%d kills on %s!", mob.Kills, mob.Name ),
+    Text = string.format("%d kills on %s!", mob.Kills, name ),
     Title = "Kill Record!",
     bTitle = "Congratulations!",
     Icon = "Interface\\Icons\\ABILITY_Deathwing_Bloodcorruption_Death",
@@ -828,6 +670,7 @@ function KT:KillAlert( mob )
     end
     _G.GlamourShowAlert( 500, data )
   else
+    ---@diagnostic disable-next-line: param-type-mismatch
     PlaySound( "RaidWarning" )
     PlaySound( "PVPTHROUGHQUEUE" )
     RaidWarningFrame:AddMessage( data.Text )
@@ -835,42 +678,47 @@ function KT:KillAlert( mob )
   self:Msg( data.Text )
 end
 
----@param id integer|string
+---@param name string?
 ---@return KillTrackMobData|false
 ---@return KillTrackCharMobData|nil
-function KT:GetMob( id )
-  for k, v in pairs( self.Global.MOBS ) do
-    if type( v ) == "table" and (tostring( k ) == tostring( id ) or v.Name == id) then
-      return v, self.CharGlobal.MOBS[ k ]
-    end
+function KT:GetMob( name )
+  if name and self.Global.MOBS[ name ] then
+    return self.Global.MOBS[ name ], self.CharGlobal.MOBS[ name ]
   end
+
   return false, nil
 end
 
 ---@param mode KillTrackMobSortMode|integer?
 ---@param filter string?
 ---@param caseSensitive boolean|nil
+---@param zoneName string|nil
 ---@return { Id: integer, Name: string, gKills: integer, cKills: integer }[]
-function KT:GetSortedMobTable( mode, filter, caseSensitive )
+function KT:GetSortedMobTable( mode, filter, caseSensitive, zoneName )
   if not tonumber( mode ) then mode = self.Sort.Desc end
   if mode < 0 or mode > 7 then mode = self.Sort.Desc end
   if filter and filter == "" then filter = nil end
+  if zoneName and zoneName == "" then zoneName = nil end
   local t = {}
   for k, v in pairs( self.Global.MOBS ) do
     assert( type( v ) == "table", "Unexpected mob entry type in db: " .. type( v ) .. ". Expected table" )
     local matches = nil
     if filter then
-      local name = caseSensitive and v.Name or string.lower( v.Name )
+      local name = caseSensitive and k or string.lower( k )
       filter = caseSensitive and filter or string.lower( filter )
       local status, result = pcall( function() return string.find( name, filter ) end )
       matches = status and result
     end
-    if matches or not filter then
+    local zoneMatches = nil
+    if zoneName then
+      zoneMatches = v.ZoneName == zoneName
+    end
+    if (matches or not filter) and (zoneMatches or not zoneName)  then
       local cKills = 0
       if self.CharGlobal.MOBS[ k ] and type( self.CharGlobal.MOBS[ k ] ) == "table" then
         cKills = self.CharGlobal.MOBS[ k ].Kills
       end
-      local entry = { Id = k, Name = v.Name, gKills = v.Kills, cKills = cKills }
+      local entry = { Name = k, gKills = v.Kills, cKills = cKills }
       table.insert( t, entry )
     end
   end
@@ -900,12 +748,9 @@ end
 ---@param name string
 ---@param charOnly boolean?
 function KT:Delete( name, charOnly )
-  --id = tonumber( id ) --[[@as integer]]
-  --if not id then error( ("Expected 'id' param to be number, got %s."):format( type( id ) ) ) end
   local found = false
-  --local name
+
   if self.Global.MOBS[ name ] then
-    --name = self.Global.MOBS[ id ].Name
     if not charOnly then self.Global.MOBS[ name ] = nil end
     if self.CharGlobal.MOBS[ name ] then
       self.CharGlobal.MOBS[ name ] = nil
@@ -935,16 +780,16 @@ function KT:Purge( threshold )
       count = count + 1
     end
   end
-  self:Msg( ("Purged %d entries with a kill count below %d"):format( count, threshold ) )
+  self:Msg( string.format("Purged %d entries with a kill count below %d", count, threshold ) )
   self.Temp.Threshold = nil
   StaticPopup_Show( "KILLTRACK_FINISH", tostring( count ) )
 end
 
 function KT:Reset()
-  local count = getn( self.Global.MOBS ) + getn( self.CharGlobal.MOBS )
-  wipe( self.Global.MOBS )
-  wipe( self.CharGlobal.MOBS )
-  self:Msg( ("%d mob entries have been removed!"):format( count ) )
+  local count = KTT:TableLength( self.Global.MOBS ) + KTT:TableLength( self.CharGlobal.MOBS )
+  KTT:Wipe( self.Global.MOBS )
+  KTT:Wipe( self.CharGlobal.MOBS )
+  self:Msg( string.format("%d mob entries have been removed!", count ) )
   StaticPopup_Show( "KILLTRACK_FINISH", tostring( count ) )
 end
 

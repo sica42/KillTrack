@@ -40,7 +40,7 @@ local function SetupFrame()
   if G.POSITION.POINT then
     frame:SetPoint( G.POSITION.POINT, UIParent, G.POSITION.RELATIVE, G.POSITION.X, G.POSITION.Y )
   else
-    frame:SetPoint( "CENTER", 0, 0 )
+    frame:SetPoint( "Center", UIParent, "Center", 0, 0 )
   end
   frame:SetWidth( 240 )
   frame:SetHeight( 30 )
@@ -73,26 +73,26 @@ local function SetupFrame()
 
   ---@diagnostic disable-next-line: inject-field
   frame.killLabel = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.killLabel:SetFont( "Fonts\\FRIZQT__.TTF", 16, nil )
+  frame.killLabel:SetFont( "Fonts\\FRIZQT__.TTF", 16, "" )
   frame.killLabel:SetWidth( 100 )
   --frame.killLabel:SetHeight(24)
-  frame.killLabel:SetPoint( "LEFT", frame, "LEFT", 2, 0 )
+  frame.killLabel:SetPoint( "Left", frame, "Left", 2, 0 )
   frame.killLabel:SetText( "Kills so far:" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.killCount = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.killCount:SetFont( "Fonts\\FRIZQT__.TTF", 16, nil )
+  frame.killCount:SetFont( "Fonts\\FRIZQT__.TTF", 16, "" )
   frame.killCount:SetWidth( 100 )
   --frame.killCount:SetHeight(24)
-  frame.killCount:SetPoint( "RIGHT", frame, "RIGHT", -68, 0 )
-  frame.killCount:SetJustifyH( "RIGHT" )
+  frame.killCount:SetPoint( "Right", frame, "Right", -68, 0 )
+  frame.killCount:SetJustifyH( "Right" )
   frame.killCount:SetText( "0" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.closeButton = CreateFrame( "Button", nil, frame, "UIPanelButtonTemplate" )
   frame.closeButton:SetWidth( 60 )
   frame.closeButton:SetHeight( 24 )
-  frame.closeButton:SetPoint( "RIGHT", frame, "RIGHT", -3, 0 )
+  frame.closeButton:SetPoint( "Right", frame, "Right", -3, 0 )
   frame.closeButton:SetText( "Close" )
   frame.closeButton:SetScript( "OnClick", function() I:Hide() end )
 end

@@ -29,9 +29,10 @@ KT.MobList = ML
 local KTT = KT.Tools
 
 local Sort = KT.Sort.Desc
----@type { Id: integer, Name: string, gKills: integer, cKills: integer }[]
+---@type { Id: integer, Name: string, ZoneName: string, gKills: integer, cKills: integer }[]
 local Mobs = nil
 local LastFilter = nil
+local LastZone = nil
 local LastOffset = 0
 
 -- Frame Constants
@@ -39,57 +40,64 @@ local FRAME_WIDTH = 451
 local FRAME_HEIGHT = 545
 local HEADER_HEIGHT = 24
 local HEADER_LEFT = 13
-local HEADER_TOP = -88
+local HEADER_TOP = -90
 local ROW_HEIGHT = 15
 local ROW_COUNT = 27
 local ROW_TEXT_PADDING = 4
-local ID_WIDTH = 100
 local NAME_WIDTH = 300
 local CHAR_WIDTH = 76
 local GLOBAL_WIDTH = 50
 local SCROLL_WIDTH = 27 -- Scrollbar width
 local STATUS_TEXT = "Showing entries %d through %d out of %d total (%d hidden)"
 
----@type table
+---@type Frame
 local frame = nil
 local created = false
 
 -- Frame helper functions
 
+---@class Header : Button
+---@field label FontString
+
 ---@param parent table
----@return table
+---@return Header
 local function CreateHeader( parent )
+
   local h = CreateFrame( "Button", nil, parent )
+  ---@cast h Header
+
   h:SetHeight( HEADER_HEIGHT )
+
+  ---@diagnostic disable-next-line: inject-field
   h.label = h:CreateFontString( nil, "ARTWORK", "GameFontHighlightSmall" )
-  h.label:SetPoint( "TOPLEFT", ROW_TEXT_PADDING * 2, 0 )
+  h.label:SetPoint( "TopLeft", h, "TopLeft", ROW_TEXT_PADDING * 2, 0 )
   h.label:SetHeight( HEADER_HEIGHT )
 
   local bgl = h:CreateTexture( nil, "BACKGROUND" )
   bgl:SetTexture( "Interface\\FriendsFrame\\WhoFrame-ColumnTabs" )
   bgl:SetWidth( 5 )
   bgl:SetHeight( HEADER_HEIGHT )
-  bgl:SetPoint( "TOPLEFT", 0, 0 )
+  bgl:SetPoint( "TopLeft", h, "TopLeft", 0, 0 )
   bgl:SetTexCoord( 0, 0.07815, 0, 0.75 )
 
   local bgr = h:CreateTexture( nil, "BACKGROUND" )
   bgr:SetTexture( "Interface\\FriendsFrame\\WhoFrame-ColumnTabs" )
   bgr:SetWidth( 5 )
   bgr:SetHeight( HEADER_HEIGHT )
-  bgr:SetPoint( "TOPRIGHT", 0, 0 )
+  bgr:SetPoint( "TopRight", h, "TopRight", 0, 0 )
   bgr:SetTexCoord( 0.90625, 0.96875, 0, 0.75 )
 
   local bgm = h:CreateTexture( nil, "BACKGROUND" )
   bgm:SetTexture( "Interface\\FriendsFrame\\WhoFrame-ColumnTabs" )
   bgm:SetHeight( HEADER_HEIGHT )
-  bgm:SetPoint( "LEFT", bgl, "RIGHT" )
-  bgm:SetPoint( "RIGHT", bgr, "LEFT" )
+  bgm:SetPoint( "Left", bgl, "Right" )
+  bgm:SetPoint( "Right", bgr, "Left" )
   bgm:SetTexCoord( 0.07815, 0.90625, 0, 0.75 )
 
   local hl = h:CreateTexture()
-  h:SetHighlightTexture( "Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight", "ADD" )
-  hl:SetPoint( "TOPLEFT", bgl, "TOPLEFT", -2, 5 )
-  hl:SetPoint( "BOTTOMRIGHT", bgr, "BOTTOMRIGHT", 2, -7 )
+  h:SetHighlightTexture( "Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight")
+  hl:SetPoint( "TopLeft", bgl, "TopLeft", -2, 5 )
+  hl:SetPoint( "BottomRight", bgr, "BottomRight", 2, -7 )
 
   return h
 end
@@ -99,29 +107,32 @@ end
 ---@return table
 local function CreateRow( container, previous )
   local row = CreateFrame( "Button", nil, container )
-  row:SetHighlightTexture( "Interface\\QuestFrame\\UI-QuestTitleHighlight", "ADD" )
+  row:SetHighlightTexture( "Interface\\QuestFrame\\UI-QuestTitleHighlight" )
   row:SetHeight( ROW_HEIGHT )
-  row:SetPoint( "LEFT", 0, 0 )
-  row:SetPoint( "RIGHT", 0, 0 )
-  row:SetPoint( "TOPLEFT", previous, "BOTTOMLEFT", 0, 0 )
+  row:SetPoint( "Left", container, "Left", 0, 0 )
+  row:SetPoint( "Right", container, "Right", 0, 0 )
+  row:SetPoint( "TopLeft", previous, "BottomLeft", 0, 0 )
 
+  ---@diagnostic disable-next-line: inject-field
   row.nameField = row:CreateFontString( nil, "ARTWORK", "GameFontHighlightSmall" )
   row.nameField:SetHeight( ROW_HEIGHT )
   row.nameField:SetWidth( NAME_WIDTH - SCROLL_WIDTH - ROW_TEXT_PADDING * 4 )
-  row.nameField:SetPoint( "LEFT", row, "LEFT", ROW_TEXT_PADDING * 2, 0 )
-  row.nameField:SetJustifyH( "LEFT" )
+  row.nameField:SetPoint( "Left", row, "Left", ROW_TEXT_PADDING * 2, 0 )
+  row.nameField:SetJustifyH( "Left" )
 
+  ---@diagnostic disable-next-line: inject-field
   row.charKillField = row:CreateFontString( nil, "ARTWORK", "GameFontHighlightSmall" )
   row.charKillField:SetHeight( ROW_HEIGHT )
   row.charKillField:SetWidth( CHAR_WIDTH - ROW_TEXT_PADDING * 4 - 4 )
-  row.charKillField:SetPoint( "LEFT", row.nameField, "RIGHT", 4 * ROW_TEXT_PADDING, 0 )
-  row.charKillField:SetJustifyH( "RIGHT" )
+  row.charKillField:SetPoint( "Left", row.nameField, "Right", 4 * ROW_TEXT_PADDING, 0 )
+  row.charKillField:SetJustifyH( "Right" )
 
+  ---@diagnostic disable-next-line: inject-field
   row.globalKillField = row:CreateFontString( nil, "ARTWORK", "GameFontHighlightSmall" )
   row.globalKillField:SetHeight( ROW_HEIGHT )
-  row.globalKillField:SetWidth( GLOBAL_WIDTH - ROW_TEXT_PADDING * 2+4 )
-  row.globalKillField:SetPoint( "LEFT", row.charKillField, "RIGHT", 4 * ROW_TEXT_PADDING -2, 0 )
-  row.globalKillField:SetJustifyH( "RIGHT" )
+  row.globalKillField:SetWidth( GLOBAL_WIDTH - ROW_TEXT_PADDING * 2 + 4 )
+  row.globalKillField:SetPoint( "Left", row.charKillField, "Right", 4 * ROW_TEXT_PADDING - 2, 0 )
+  row.globalKillField:SetJustifyH( "Right" )
 
   row:SetScript( "OnClick", function()
     local name = this.nameField:GetText()
@@ -137,9 +148,7 @@ local function CreateRow( container, previous )
     local lastKillAt = KTT:FormatDateTime( killTimestamp )
     local tpString = string.format( "Last killed at %s", lastKillAt )
 
-    GameTooltip:SetOwner( this, "ANCHOR_CURSOR" )
-    --GameTooltip:ClearAllPoints()
-    --GameTooltip:SetPoint( "TOPLEFT", this, "BOTTOMLEFT" )
+    GameTooltip:SetOwner( this, "ANCHOR_BOTTOMLEFT" )
     GameTooltip:ClearLines()
     GameTooltip:AddLine( tpString )
     GameTooltip:Show()
@@ -153,6 +162,7 @@ local function CreateRow( container, previous )
 end
 
 function ML:Show()
+  ML.Zones = {}
   if not created then
     ML:Create()
   end
@@ -175,14 +185,16 @@ end
 
 function ML:Create()
   if frame then return end
-  frame = CreateFrame( "Frame", nil, UIParent )
+  frame = CreateFrame( "Frame", "KillTrackMobListFrame", UIParent )
   frame:Hide()
   frame:SetToplevel( true )
   frame:EnableMouse( true )
   frame:SetMovable( true )
-  frame:SetPoint( "CENTER", 0, 0 )
+  frame:SetPoint( "Center", UIParent, "Center", 0, 0 )
   frame:SetWidth( FRAME_WIDTH )
   frame:SetHeight( FRAME_HEIGHT )
+
+  table.insert( UISpecialFrames, frame:GetName())
 
   local bd = {
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -202,11 +214,10 @@ function ML:Create()
 
   ---@diagnostic disable-next-line: inject-field
   frame.titleLabel = frame:CreateFontString( nil, "OVERLAY", "GameFontNormal" )
-  --frame.titleLabel:SetWidth( 250 )
   frame.titleLabel:SetHeight( 16 )
-  frame.titleLabel:SetPoint( "TOPLEFT", frame, "TOPLEFT", 0, -8 )
-  frame.titleLabel:SetPoint( "RIGHT", 0, 0)
-  frame.titleLabel:SetJustifyH( "CENTER" )
+  frame.titleLabel:SetPoint( "TopLeft", frame, "TopLeft", 0, -8 )
+  frame.titleLabel:SetPoint( "Right", frame, "Right", 0, 0 )
+  frame.titleLabel:SetJustifyH( "Center" )
   frame.titleLabel:SetText( "KillTrack Mob Database (" .. KT.Version .. ")" )
 
   frame:SetScript( "OnMouseDown", function() frame:StartMoving() end )
@@ -218,14 +229,14 @@ function ML:Create()
 
   ---@diagnostic disable-next-line: inject-field
   frame.closeButton = CreateFrame( "Button", nil, frame, "UIPanelCloseButton" )
-  frame.closeButton:SetPoint( "TOPRIGHT", frame, "TOPRIGHT", -1, -1 )
+  frame.closeButton:SetPoint( "TopRight", frame, "TopRight", -1, -1 )
   frame.closeButton:SetScript( "OnClick", function() ML:Hide() end )
 
   ---@diagnostic disable-next-line: inject-field
   frame.purgeButton = CreateFrame( "Button", nil, frame, "UIPanelButtonTemplate" )
   frame.purgeButton:SetHeight( 24 )
   frame.purgeButton:SetWidth( 100 )
-  frame.purgeButton:SetPoint( "TOPLEFT", frame, "TOPLEFT", 10, -8 )
+  frame.purgeButton:SetPoint( "TopLeft", frame, "TopLeft", 10, -8 )
   frame.purgeButton:SetText( "Purge Data" )
   frame.purgeButton:SetScript( "OnClick", function()
     KT:ShowPurge()
@@ -235,7 +246,7 @@ function ML:Create()
   frame.resetButton = CreateFrame( "Button", nil, frame, "UIPanelButtonTemplate" )
   frame.resetButton:SetHeight( 24 )
   frame.resetButton:SetWidth( 100 )
-  frame.resetButton:SetPoint( "TOPLEFT", frame.purgeButton, "BOTTOMLEFT", 0, -3 )
+  frame.resetButton:SetPoint( "TopLeft", frame.purgeButton, "BottomLeft", 0, -3 )
   frame.resetButton:SetText( "Reset All" )
   frame.resetButton:SetScript( "OnClick", function()
     KT:ShowReset()
@@ -245,18 +256,16 @@ function ML:Create()
   frame.helpLabel = frame:CreateFontString( nil, "OVERLAY", "GameFontNormal" )
   frame.helpLabel:SetWidth( 300 )
   frame.helpLabel:SetHeight( 32 )
-  frame.helpLabel:SetPoint( "TOPLEFT", frame, "TOPLEFT", 120, -28 )
-  frame.helpLabel:SetJustifyH( "LEFT" )
-  --frame.helpLabel:SetWordWrap(true)
-  --frame.helpLabel:SetMaxLines(2)
+  frame.helpLabel:SetPoint( "TopLeft", frame, "TopLeft", 120, -28 )
+  frame.helpLabel:SetJustifyH( "Left" )
   frame.helpLabel:SetText(
     "Click on an individual entry to delete it from the database. Use the search to filter database by name." )
 
   ---@diagnostic disable-next-line: inject-field
   frame.searchBox = CreateFrame( "EditBox", "KillTrackMobListSearchBox", frame, "SearchBoxTemplate" )
-  frame.searchBox:SetWidth( 200 )
+  frame.searchBox:SetWidth( 150 )
   frame.searchBox:SetHeight( 16 )
-  frame.searchBox:SetPoint( "TOPLEFT", frame.resetButton, "BOTTOMLEFT", 8, -6 )
+  frame.searchBox:SetPoint( "TopLeft", frame.resetButton, "BottomLeft", 8, -6 )
   frame.searchBox:SetScript( "OnTextChanged", function( s )
     local text = frame.searchBox:GetText()
     if (not _G[ frame.searchBox:GetName() .. "ClearButton" ]:IsShown()) then
@@ -283,30 +292,25 @@ function ML:Create()
 
   ---@diagnostic disable-next-line: inject-field
   frame.searchTipLabel = frame:CreateFontString( nil, "OVERLAY", "GameFontNormal" )
-  frame.searchTipLabel:SetWidth( 200 )
+  frame.searchTipLabel:SetWidth( 110 )
   frame.searchTipLabel:SetHeight( 16 )
-  frame.searchTipLabel:SetPoint( "LEFT", frame.searchBox, "RIGHT", 5, 0 )
-  frame.searchTipLabel:SetJustifyH( "LEFT" )
+  frame.searchTipLabel:SetPoint( "Left", frame.searchBox, "Right", 5, 0 )
+  frame.searchTipLabel:SetJustifyH( "Left" )
   frame.searchTipLabel:SetText( "(Supports Lua patterns)" )
-  --[[
+
   ---@diagnostic disable-next-line: inject-field
-  frame.idHeader = CreateHeader( frame )
-  frame.idHeader:SetPoint( "TOPLEFT", frame, "TOPLEFT", HEADER_LEFT, HEADER_TOP )
-  frame.idHeader:SetWidth( ID_WIDTH )
-  frame.idHeader.label:SetText( "NPC ID" )
-  frame.idHeader:SetScript( "OnClick", function()
-    local sort = KT.Sort.IdAsc
-    if Sort == sort then
-      sort = KT.Sort.IdDesc
-    end
-    ML:UpdateMobs( sort, LastFilter )
-    ML:UpdateEntries( LastOffset )
-  end )
-]]
+  frame.zoneDropDown = CreateFrame( "Frame", "KillTrackMobListZoneDropDown", frame, "UIDropDownMenuTemplate" )
+  frame.zoneDropDown:SetWidth( 100 )
+  frame.zoneDropDown:SetHeight( 16 )
+  frame.zoneDropDown:SetPoint( "Left", frame.searchTipLabel, "Right", 3, 0 )
+  UIDropDownMenu_SetWidth( 100, frame.zoneDropDown )
+  UIDropDownMenu_SetText( "All zones", frame.zoneDropDown )
+
+  UIDropDownMenu_Initialize( frame.zoneDropDown, ML.ZoneDropDownMenu )
+
   ---@diagnostic disable-next-line: inject-field
   frame.nameHeader = CreateHeader( frame )
-  frame.nameHeader:SetPoint( "TOPLEFT", frame, "TOPLEFT", HEADER_LEFT, HEADER_TOP )
-  --frame.nameHeader:SetPoint( "TOPLEFT", frame.idHeader, "TOPRIGHT", -2, 0 )
+  frame.nameHeader:SetPoint( "TopLeft", frame, "TopLeft", HEADER_LEFT, HEADER_TOP )
   frame.nameHeader:SetWidth( NAME_WIDTH - SCROLL_WIDTH )
   frame.nameHeader.label:SetText( "Name" )
   frame.nameHeader:SetScript( "OnClick", function()
@@ -318,9 +322,9 @@ function ML:Create()
     ML:UpdateEntries( LastOffset )
   end )
 
-  ----@diagnostic disable-next-line: inject-field
+  ---@diagnostic disable-next-line: inject-field
   frame.charKillHeader = CreateHeader( frame )
-  frame.charKillHeader:SetPoint( "TOPLEFT", frame.nameHeader, "TOPRIGHT", -2, 0 )
+  frame.charKillHeader:SetPoint( "TopLeft", frame.nameHeader, "TopRight", -2, 0 )
   frame.charKillHeader:SetWidth( CHAR_WIDTH )
   frame.charKillHeader.label:SetText( "Character Kills" )
   frame.charKillHeader:SetScript( "OnClick", function()
@@ -332,9 +336,9 @@ function ML:Create()
     ML:UpdateEntries( LastOffset )
   end )
 
-  ----@diagnostic disable-next-line: inject-field
+  ---@diagnostic disable-next-line: inject-field
   frame.globalKillHeader = CreateHeader( frame )
-  frame.globalKillHeader:SetPoint( "TOPLEFT", frame.charKillHeader, "TOPRIGHT", -2, 0 )
+  frame.globalKillHeader:SetPoint( "TopLeft", frame.charKillHeader, "TopRight", -2, 0 )
   frame.globalKillHeader:SetWidth( GLOBAL_WIDTH + HEADER_LEFT )
   frame.globalKillHeader.label:SetText( "Global Kills" )
   frame.globalKillHeader:SetScript( "OnClick", function()
@@ -346,19 +350,18 @@ function ML:Create()
     ML:UpdateEntries( LastOffset )
   end )
 
-  ----@diagnostic disable-next-line: inject-field
+  ---@diagnostic disable-next-line: inject-field
   frame.rows = CreateFrame( "Frame", nil, frame )
-  frame.rows:SetPoint( "LEFT", 10, 0 )
-  frame.rows:SetPoint( "RIGHT", frame, "RIGHT", -SCROLL_WIDTH - 9, 0 )
-  frame.rows:SetPoint( "TOP", frame.nameHeader, "BOTTOM", 0, 0 )
-  frame.rows:SetPoint( "BOTTOM", frame, "BOTTOM", 0, 0 )
-  frame.rows:SetPoint( "TOPLEFT", frame.nameHeader, "BOTTOMLEFT", 0, 30 )
+  frame.rows:SetPoint( "Left", frame, "Left", 10, 0 )
+  frame.rows:SetPoint( "Right", frame, "Right", -SCROLL_WIDTH - 9, 0 )
+  frame.rows:SetPoint( "Top", frame.nameHeader, "Bottom", 0, 0 )
+  frame.rows:SetPoint( "Bottom", frame, "Bottom", 0, 0 )
+  frame.rows:SetPoint( "TopLeft", frame.nameHeader, "BottomLeft", 0, 30 )
 
   local previous = frame.nameHeader
   for i = 1, ROW_COUNT do
     local key = "row" .. i
     frame.rows[ key ] = CreateRow( frame.rows, previous )
-    -- frame.rows[ key ].idField:SetText( "" )
     frame.rows[ key ].nameField:SetText( "" )
     frame.rows[ key ].charKillField:SetText( "" )
     frame.rows[ key ].globalKillField:SetText( "" )
@@ -367,10 +370,11 @@ function ML:Create()
 
   ---@diagnostic disable-next-line: inject-field
   frame.rows.scroller = CreateFrame( "ScrollFrame", "KillTrackMobListScrollFrame", frame.rows, "FauxScrollFrameTemplate" )
+  ---@diagnostic disable-next-line: inject-field
   frame.rows.scroller.name = frame.rows.scroller:GetName()
   frame.rows.scroller:SetWidth( frame.rows:GetWidth() )
-  frame.rows.scroller:SetPoint( "TOPRIGHT", frame.rows, "TOPRIGHT", -1, -HEADER_HEIGHT - 5 )
-  frame.rows.scroller:SetPoint( "BOTTOMRIGHT", 0, 24 )
+  frame.rows.scroller:SetPoint( "TopRight", frame.rows, "TopRight", -1, -HEADER_HEIGHT - 5 )
+  frame.rows.scroller:SetPoint( "BottomRight", frame.rows, "BottomRight", 0, 24 )
   frame.rows.scroller:SetScript( "OnVerticalScroll", function()
     FauxScrollFrame_OnVerticalScroll( ROW_HEIGHT, function()
       local offset = FauxScrollFrame_GetOffset( frame.rows.scroller )
@@ -385,13 +389,48 @@ function ML:Create()
   frame.statusLabel = frame:CreateFontString( nil, "OVERLAY", "GameFontNormal" )
   frame.statusLabel:SetWidth( 420 )
   frame.statusLabel:SetHeight( 16 )
-  frame.statusLabel:SetPoint( "BOTTOM", frame, "BOTTOM", 0, 8 )
+  frame.statusLabel:SetPoint( "Bottom", frame, "Bottom", 0, 8 )
   frame.statusLabel:SetText( string.format( STATUS_TEXT, 1, ROW_COUNT, getn( Mobs ), 0 ) )
 
 
   self:UpdateEntries( LastOffset )
 
   created = true
+end
+
+function ML.ZoneDropDownMenu()
+  local info = {}
+  info.notCheckable = 1
+  info.text = "All zones"
+  info.arg1 = info.text
+  info.arg2 = "All"
+  info.func = function( zone, is_all )
+    LastZone = zone
+    if is_all then LastZone = nil end
+    UIDropDownMenu_SetText( zone, frame.zoneDropDown )
+
+    ML:UpdateMobs( Sort, LastFilter )
+    ML:UpdateEntries( LastOffset )
+  end
+  UIDropDownMenu_AddButton( info )
+
+  if not ML.Zones and Mobs then
+    ML.Zones = {}
+    for _, mob in pairs( KT.Global.MOBS ) do
+      if mob.ZoneName then
+        ML.Zones[ mob.ZoneName ] = ML.Zones[ mob.ZoneName ] and ML.Zones[ mob.ZoneName ] + 1 or 1
+      end
+    end
+  end
+
+  if ML.Zones then
+    for zone, count in pairs( ML.Zones ) do
+      info.text = zone .. " (" .. count .. ")"
+      info.arg1 = zone
+      info.arg2 = nil
+      UIDropDownMenu_AddButton( info )
+    end
+  end
 end
 
 ---@param sort KillTrackMobSortMode?
@@ -401,7 +440,7 @@ function ML:UpdateMobs( sort, filter )
   Sort = sort
   LastFilter = filter
   if filter == "Search" then filter = nil end
-  Mobs = KT:GetSortedMobTable( Sort, filter and string.lower( filter ) or nil )
+  Mobs = KT:GetSortedMobTable( Sort, filter and string.lower( filter ) or nil, nil, LastZone )
   FauxScrollFrame_Update( frame.rows.scroller, getn( Mobs ), ROW_COUNT, ROW_HEIGHT )
 end
 
@@ -410,7 +449,6 @@ function ML:UpdateEntries( offset )
   if (getn( Mobs ) <= 0) then
     for i = 1, ROW_COUNT do
       local row = frame.rows[ "row" .. i ]
-      --row.idField:SetText( "" )
       if i == 1 then
         row.nameField:SetText( "No entries in database or none matched search!" )
       else
@@ -427,7 +465,6 @@ function ML:UpdateEntries( offset )
   elseif getn( Mobs ) < ROW_COUNT then
     for i = 1, ROW_COUNT do
       local row = frame.rows[ "row" .. i ]
-      --row.idField:SetText( "" )
       row.nameField:SetText( "" )
       row.charKillField:SetText( "" )
       row.globalKillField:SetText( "" )
@@ -443,7 +480,6 @@ function ML:UpdateEntries( offset )
   for i = 1, limit do
     local row = frame.rows[ "row" .. i ]
     local mob = Mobs[ i + offset ]
-    --row.idField:SetText( mob.Id )
     row.nameField:SetText( mob.Name )
     row.charKillField:SetText( mob.cKills )
     row.globalKillField:SetText( mob.gKills )

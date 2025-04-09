@@ -42,14 +42,14 @@ local frame
 
 local function SetupFrame()
   if frame then return end
-  frame = CreateFrame( "Frame", nil, UIParent ) --, BackdropTemplateMixin and "BackdropTemplate")
+  frame = CreateFrame( "Frame", nil, UIParent )
   frame:Hide()
   frame:EnableMouse( true )
   frame:SetMovable( true )
   frame:SetWidth( 200 )
   frame:SetHeight( 93 )
 
-  frame:SetPoint( "CENTER", 0, 0 )
+  frame:SetPoint( "Center", UIParent, "Center", 0, 0 )
 
   local bd = {
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -72,57 +72,57 @@ local function SetupFrame()
 
   ---@diagnostic disable-next-line: inject-field
   frame.currentLabel = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.currentLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.currentLabel:SetPoint( "TOPLEFT", frame, "TOPLEFT", 6, -6 )
+  frame.currentLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.currentLabel:SetPoint( "TopLeft", frame, "TopLeft", 6, -6 )
   frame.currentLabel:SetText( "Number of kills:" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.currentCount = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.currentCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.currentCount:SetPoint( "TOPRIGHT", frame, "TOPRIGHT", -6, -6 )
+  frame.currentCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.currentCount:SetPoint( "TopRight", frame, "TopRight", -6, -6 )
   frame.currentCount:SetText( "0" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.timeLabel = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.timeLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.timeLabel:SetPoint( "TOPLEFT", frame.currentLabel, "BOTTOMLEFT", 0, -2 )
+  frame.timeLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.timeLabel:SetPoint( "TopLeft", frame.currentLabel, "BottomLeft", 0, -2 )
   frame.timeLabel:SetText( "Time left:" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.timeCount = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.timeCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.timeCount:SetPoint( "TOPRIGHT", frame.currentCount, "BOTTOMRIGHT", 0, -2 )
+  frame.timeCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.timeCount:SetPoint( "TopRight", frame.currentCount, "BottomRight", 0, -2 )
   frame.timeCount:SetText( "00:00:00" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.killsPerMinuteLabel = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.killsPerMinuteLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.killsPerMinuteLabel:SetPoint( "TOPLEFT", frame.timeLabel, "BOTTOMLEFT", 0, -2 )
+  frame.killsPerMinuteLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.killsPerMinuteLabel:SetPoint( "TopLeft", frame.timeLabel, "BottomLeft", 0, -2 )
   frame.killsPerMinuteLabel:SetText( "Kills Per Minute:" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.killsPerMinuteCount = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.killsPerMinuteCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.killsPerMinuteCount:SetPoint( "TOPRIGHT", frame.timeCount, "BOTTOMRIGHT", 0, -2 )
+  frame.killsPerMinuteCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.killsPerMinuteCount:SetPoint( "TopRight", frame.timeCount, "BottomRight", 0, -2 )
   frame.killsPerMinuteCount:SetText( "0" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.killsPerSecondLabel = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.killsPerSecondLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.killsPerSecondLabel:SetPoint( "TOPLEFT", frame.killsPerMinuteLabel, "BOTTOMLEFT", 0, -2 )
+  frame.killsPerSecondLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.killsPerSecondLabel:SetPoint( "TopLeft", frame.killsPerMinuteLabel, "BottomLeft", 0, -2 )
   frame.killsPerSecondLabel:SetText( "Kills Per Second:" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.killsPerSecondCount = frame:CreateFontString( nil, "OVERLAY", nil )
-  frame.killsPerSecondCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, nil )
-  frame.killsPerSecondCount:SetPoint( "TOPRIGHT", frame.killsPerMinuteCount, "BOTTOMRIGHT", 0, -2 )
+  frame.killsPerSecondCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
+  frame.killsPerSecondCount:SetPoint( "TopRight", frame.killsPerMinuteCount, "BottomRight", 0, -2 )
   frame.killsPerSecondCount:SetText( "Kills Per Minute:" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.cancelButton = CreateFrame( "Button", nil, frame, "UIPanelButtonTemplate" )
   frame.cancelButton:SetWidth( 60 )
   frame.cancelButton:SetHeight( 16 )
-  frame.cancelButton:SetPoint( "BOTTOM", frame, "BOTTOM", -40, 7 )
+  frame.cancelButton:SetPoint( "Bottom", frame, "Bottom", -40, 7 )
   frame.cancelButton:SetScript( "OnLoad", function( self ) self:Disable() end )
   frame.cancelButton:SetScript( "OnClick", function() TF:Cancel() end )
   frame.cancelButton:SetText( "Stop" )
@@ -131,7 +131,7 @@ local function SetupFrame()
   frame.closeButton = CreateFrame( "Button", nil, frame, "UIPanelButtonTemplate" )
   frame.closeButton:SetWidth( 60 )
   frame.closeButton:SetHeight( 16 )
-  frame.closeButton:SetPoint( "BOTTOM", frame, "BOTTOM", 40, 7 )
+  frame.closeButton:SetPoint( "Bottom", frame, "Bottom", 40, 7 )
   frame.closeButton:SetScript( "OnLoad", function( self ) self:Disable() end )
   frame.closeButton:SetScript( "OnClick", function() TF:Close() end )
   frame.closeButton:SetText( "Close" )
@@ -142,9 +142,9 @@ local function SetupFrame()
   frame.progressBar:SetStatusBarColor( 0, 1, 0 )
   frame.progressBar:SetMinMaxValues( 0, 1 )
   frame.progressBar:SetValue( 0 )
-  frame.progressBar:SetPoint( "TOPLEFT", frame.killsPerSecondLabel, "BOTTOMLEFT", -1, -2 )
-  frame.progressBar:SetPoint( "RIGHT", frame.killsPerSecondCount, "RIGHT", 0, 0 )
-  frame.progressBar:SetPoint( "BOTTOM", frame.cancelButton, "TOP", 0, 2 )
+  frame.progressBar:SetPoint( "TopLeft", frame.killsPerSecondLabel, "BottomLeft", -1, -2 )
+  frame.progressBar:SetPoint( "Right", frame.killsPerSecondCount, "Right", 0, 0 )
+  frame.progressBar:SetPoint( "Bottom", frame.cancelButton, "Top", 0, 2 )
 
   ---@diagnostic disable-next-line: inject-field
   frame.progressLabel = frame.progressBar:CreateFontString( nil, "OVERLAY", nil )
@@ -181,7 +181,9 @@ function TF:UpdateData( data, state )
     frame.currentCount:SetText( kills )
     frame.timeCount:SetText( data.LeftFormat )
     frame.progressLabel:SetText( floor( data.Progress * 100 ) .. "%" )
+    ---@diagnostic disable-next-line: undefined-field
     frame.progressBar:SetMinMaxValues( 0, data.Total )
+    ---@diagnostic disable-next-line: undefined-field
     frame.progressBar:SetValue( data.Current )
     frame.killsPerMinuteCount:SetText( string.format( "%.2f", kpm ) )
     frame.killsPerSecondCount:SetText( string.format( "%.2f", kps ) )

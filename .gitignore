@@ -1,6 +1,2 @@
 .env
-.release
-release.sh
-*.png
-*.zip
-.idea/
+wow-api-type-definitions/

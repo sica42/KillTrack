@@ -115,7 +115,7 @@ end
 function obj:OnEnter()
   KT:DebugMsg( "Broker OnEnter" )
   GameTooltip:SetOwner( this, "ANCHOR_NONE" )
-  GameTooltip:SetPoint( "TOPLEFT", self, "BOTTOMLEFT" )
+  GameTooltip:SetPoint( "TopLeft", self, "BottomLeft" )
   KTB:UpdateTooltip()
   tooltipVisible = true
 end

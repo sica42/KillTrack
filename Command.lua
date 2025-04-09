@@ -81,8 +81,8 @@ C:Register( "__DEFAULT__", function()
   KT:Msg( "/kt lookup <name> - Display number of kills on <name>, <name> can also be NPC ID." )
   KT:Msg( "/kt print - Toggle printing kill updates to chat." )
   KT:Msg( "/kt list - Display a list of all mobs entries." )
-  KT:Msg( "/kt set <id> <name> <global> <char> - Set kill counts for a mob" )
-  KT:Msg( "/kt delete <id> - Delete entry with NPC id <id>." )
+  KT:Msg( "/kt set <name> <global> <char> - Set kill counts for a mob" )
+  KT:Msg( "/kt delete <name> - Delete <name> entry." )
   KT:Msg( "/kt purge [threshold] - Open dialog to purge entries, specifiying a threshold here is optional." )
   KT:Msg( "/kt reset - Clear the mob database." )
   KT:Msg( "/kt time - Track kills within specified time." )
@@ -123,16 +123,21 @@ C:Register( { "printnew", "pn" }, function()
 end )
 
 C:Register( { "set", "edit" }, function( args )
-  local id = tonumber( args[ 1 ] ) --[[@as integer]]
-  local name = args[ 2 ]
-  local global = tonumber( args[ 3 ] ) --[[@as integer]]
-  local char = tonumber( args[ 4 ] ) --[[@as integer]]
-
+  local name = args[ 1 ]
+  local global
+  local char
   local err
 
-  if not id then
-    KT:Msg( "Missing or invalid argument: id" )
-    err = true
+  for i = 2, getn( args ) do
+    if tonumber( args[ i ] ) then
+      if not global then
+        global = tonumber( args[ i ] ) --[[@as integer]]
+      elseif global and not char then
+        char = tonumber( args[ i ] ) --[[@as integer]]
+      end
+    else
+      name = name .. " " .. args[ i ]
+    end
   end
 
   if not name then
@@ -151,11 +156,11 @@ C:Register( { "set", "edit" }, function( args )
   end
 
   if err then
-    KT:Msg( "Usage: /kt set <id> <name> <global> <char>" )
+    KT:Msg( "Usage: /kt set <name> <global> <char>" )
     return
   end
 
-  KT:SetKills( id, name, global, char )
+  KT:SetKills( name, global, char )
 end )
 
 C:Register( { "delete", "del", "remove", "rem" }, function( args )
@@ -163,16 +168,18 @@ C:Register( { "delete", "del", "remove", "rem" }, function( args )
     KT:Msg( "Missing argument: id" )
     return
   end
-  local id = tonumber( args[ 1 ] )
-  if not id then
-    KT:Msg( "Id must be a number" )
+
+  local name = args[ 1 ]
+  for i = 2, getn( args ) do
+    name = name .. " " .. args[ i ]
+  end
+
+  if not KT.Global.MOBS[ name ] then
+    KT:Msg( string.format("%q does not exist in the database.", name ) )
     return
   end
-  if not KT.Global.MOBS[ id ] then
-    KT:Msg( ("Id %d does not exist in the database."):format( id ) )
-    return
-  end
-  local name = KT.Global.MOBS[ id ].Name
+  --local name = KT.Global.MOBS[ id ].Name
+
   KT:ShowDelete( name )
 end )
 
@@ -259,7 +266,7 @@ end )
 
 C:Register( { "threshold" }, function( args )
   if getn( args ) <= 0 then
-    KT:Msg( string.format("Current threshold is %d.", KT.Global.ACHIEV_THRESHOLD))
+    KT:Msg( string.format( "Current threshold is %d.", KT.Global.ACHIEV_THRESHOLD ) )
     KT:Msg( "Usage: threshold <threshold>" )
     KT:Msg( "E.g: /kt threshold 100" )
     KT:Msg( "    Notice will be shown on every 100th kill." )

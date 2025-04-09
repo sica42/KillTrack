@@ -56,15 +56,16 @@ StaticPopupDialogs.KILLTRACK_PURGE = {
   button2 = "Cancel",
   hasEditBox = true,
   maxLetters = 6,
-  OnAccept = function( self )
-    KT:Purge( tonumber( self.editBox:GetText() ) --[[@as integer]] )
+  OnAccept = function()
+    local editBox = getglobal( this:GetParent():GetName() .. "EditBox" )
+    KT:Purge( tonumber( editBox:GetText() ) --[[@as integer]] )
     KT.MobList:UpdateMobs()
     KT.MobList:UpdateEntries()
   end,
   OnCancel = function() KT.Temp.Threshold = nil end,
   OnShow = function()
-    local editBox = getglobal( this:GetName() .. "EditBox" );
-    local button1 = getglobal( this:GetName() .. "Button1" );
+    local editBox = getglobal( this:GetName() .. "EditBox" )
+    local button1 = getglobal( this:GetName() .. "Button1" )
 
     if tonumber( KT.Temp.Threshold ) then
       editBox:SetText( tostring( KT.Temp.Threshold ) )
@@ -73,7 +74,7 @@ StaticPopupDialogs.KILLTRACK_PURGE = {
     end
   end,
   EditBoxOnTextChanged = function()
-    local button1 = getglobal( this:GetParent():GetName() .. "Button1" );
+    local button1 = getglobal( this:GetParent():GetName() .. "Button1" )
     if tonumber( this:GetText() ) then
       button1:Enable()
     else

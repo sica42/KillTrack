@@ -44,7 +44,7 @@ local checkCounter = 0
 ---@param label string
 ---@param description string
 ---@param onclick function
----@return table
+---@return CheckButton
 local function checkbox( label, description, onclick )
   local check = CreateFrame( "CheckButton", "KillTrackOptCheck" .. checkCounter, panel, "UICheckButtonTemplate" )
   check:SetScript( "OnClick", function()
@@ -66,7 +66,7 @@ end
 ---@param text string
 ---@param tooltip string
 ---@param onclick function
----@return table
+---@return Button
 local function button( text, tooltip, onclick )
   local btn = CreateFrame( "Button", nil, panel, "UIPanelButtonTemplate" )
   btn:SetText( text )
@@ -83,7 +83,7 @@ function Opt:CreateFrame()
   frame:SetToplevel( true )
   frame:EnableMouse( true )
   frame:SetMovable( true )
-  frame:SetPoint( "CENTER", 0, 0 )
+  frame:SetPoint( "Center", UIParent, "Center", 0, 0 )
   frame:SetWidth( 500 )
   frame:SetHeight( 400 )
   frame:SetBackdrop( {
@@ -103,49 +103,50 @@ function Opt:CreateFrame()
   frame:SetScript( "OnMouseDown", function() frame:StartMoving() end )
   frame:SetScript( "OnMouseUp", function() frame:StopMovingOrSizing() end )
 
+  ---@diagnostic disable-next-line: inject-field
   frame.closeButton = CreateFrame( "Button", nil, frame, "UIPanelCloseButton" )
-  frame.closeButton:SetPoint( "TOPRIGHT", frame, "TOPRIGHT", -1, -1 )
+  frame.closeButton:SetPoint( "TopRight", frame, "TopRight", -1, -1 )
   frame.closeButton:SetScript( "OnClick", function() Opt:Hide() end )
 
   self.Frame = frame
 
   panel:SetParent( frame )
-  panel:SetPoint( "TOPLEFT", 5, -5 )
-  panel:SetPoint( "BOTTOMRIGHT", 5, 5 )
+  panel:SetPoint( "TopLeft", frame, "TopLeft", 5, -5 )
+  panel:SetPoint( "BottomRight", frame, "BottomRight", 5, 5 )
 
   local title = panel:CreateFontString( nil, "ARTWORK", "GameFontNormalLarge" )
-  title:SetPoint( "TOPLEFT", 16, -16 )
+  title:SetPoint( "TopLeft", panel, "TopLeft", 16, -16 )
   title:SetText( "KillTrack" )
 
   local printKills = checkbox( "Print kill updates to chat",
     "With this enabled, every kill you make is going to be announced locally in the chatbox",
     function( _, checked ) KT.Global.PRINTKILLS = checked end )
-  printKills:SetPoint( "TOPLEFT", title, "BOTTOMLEFT", -2, -16 )
+  printKills:SetPoint( "TopLeft", title, "BottomLeft", -2, -16 )
 
   local tooltipControl = checkbox( "Show mob data in tooltip",
     "With this enabled, KillTrack will print data about mobs in the tooltip",
     function( _, checked ) KT.Global.TOOLTIP = checked end )
-  tooltipControl:SetPoint( "LEFT", printKills, "RIGHT", 180, 0 )
+  tooltipControl:SetPoint( "Left", printKills, "Right", 180, 0 )
 
   local printNew = checkbox( "Print new mob entries to chat",
     "With this enabled, new mobs added to the database will be announced locally in the chat",
     function( _, checked ) KT.Global.PRINTNEW = checked end )
-  printNew:SetPoint( "TOPLEFT", printKills, "BOTTOMLEFT", 0, 0 )
+  printNew:SetPoint( "TopLeft", printKills, "BottomLeft", 0, 0 )
 
   local countGroup = checkbox( "Count group kills",
     "With this disabled, only killing blows made by yourself will count",
     function( _, checked ) KT.Global.COUNT_GROUP = checked end )
-  countGroup:SetPoint( "LEFT", printNew, "RIGHT", 180, 0 )
+  countGroup:SetPoint( "Left", printNew, "Right", 180, 0 )
 
   local thresholdDesc = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
-  thresholdDesc:SetPoint( "TOPLEFT", printNew, "BOTTOMLEFT", 0, -8 )
+  thresholdDesc:SetPoint( "TopLeft", printNew, "BottomLeft", 0, -8 )
   thresholdDesc:SetTextColor( 1, 1, 1 )
   thresholdDesc:SetText( "Threshold for displaying kill achievements (press enter to apply)" )
 
   local threshold = CreateFrame( "EditBox", "KillTrackOptThreshold", panel, "InputBoxTemplate" )
   threshold:SetHeight( 22 )
   threshold:SetWidth( 150 )
-  threshold:SetPoint( "LEFT", thresholdDesc, "RIGHT", 8, 0 )
+  threshold:SetPoint( "Left", thresholdDesc, "Right", 8, 0 )
   threshold:SetAutoFocus( false )
   threshold:EnableMouse( true )
   threshold:SetScript( "OnEditFocusGained", function()
@@ -173,12 +174,11 @@ function Opt:CreateFrame()
   local showTarget = button( "Target", "Show information about the currently selected target",
     function()
       if not UnitExists( "target" ) or UnitIsPlayer( "target" ) then return end
-      --local id = KTT.GUIDToID(UnitGUID("target"))
       local name = UnitName( "target" )
       KT:PrintKills( name )
     end )
   showTarget:SetWidth( 150 )
-  showTarget:SetPoint( "TOPLEFT", thresholdDesc, "BOTTOMLEFT", 0, -16 )
+  showTarget:SetPoint( "TopLeft", thresholdDesc, "BottomLeft", 0, -16 )
 
   local list = button( "List", "Open the mob database",
     function()
@@ -186,49 +186,49 @@ function Opt:CreateFrame()
       KT.MobList:Show()
     end )
   list:SetWidth( 150 )
-  list:SetPoint( "TOPLEFT", showTarget, "TOPRIGHT", 8, 0 )
+  list:SetPoint( "TopLeft", showTarget, "TopRight", 8, 0 )
 
   local purge = button( "Purge", "Purge mob entries with a kill count below a specified number",
     function() KT:ShowPurge() end )
   purge:SetWidth( 150 )
-  purge:SetPoint( "TOPLEFT", showTarget, "BOTTOMLEFT", 0, -8 )
+  purge:SetPoint( "TopLeft", showTarget, "BottomLeft", 0, -8 )
 
   local reset = button( "Reset", "Clear the database of ALL mob entries",
     function() KT:ShowReset() end )
   reset:SetWidth( 150 )
-  reset:SetPoint( "TOPLEFT", purge, "TOPRIGHT", 8, 0 )
+  reset:SetPoint( "TopLeft", purge, "TopRight", 8, 0 )
 
   local minimap = checkbox( "Show minimap icon", "Adds the KillTrack broker to your minimap",
     function( _, checked ) KT.Broker:SetMinimap( checked ) end )
-  minimap:SetPoint( "TOPLEFT", purge, "BOTTOMLEFT", 0, -8 )
+  minimap:SetPoint( "TopLeft", purge, "BottomLeft", 0, -8 )
 
   local disableDungeons = checkbox( "Disable in dungeons (save CPU)",
     "When this is checked, mob kills in dungeons won't be counted.",
     function( _, checked ) KT.Global.DISABLE_DUNGEONS = checked end )
-  disableDungeons:SetPoint( "TOPLEFT", minimap, "BOTTOMLEFT", 0, 0 )
+  disableDungeons:SetPoint( "TopLeft", minimap, "BottomLeft", 0, 0 )
 
   local disableRaids = checkbox( "Disable in raids (save CPU)",
     "When this is checked, mob kills in raids won't be counted.",
     function( _, checked ) KT.Global.DISABLE_RAIDS = checked end )
-  disableRaids:SetPoint( "TOPLEFT", disableDungeons, "BOTTOMLEFT", 0, 0 )
+  disableRaids:SetPoint( "TopLeft", disableDungeons, "BottomLeft", 0, 0 )
 
   local datetimeFormatDesc = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
-  datetimeFormatDesc:SetPoint( "TOPLEFT", disableRaids, "BOTTOMLEFT", 0, -8 )
+  datetimeFormatDesc:SetPoint( "TopLeft", disableRaids, "BottomLeft", 0, -8 )
   datetimeFormatDesc:SetTextColor( 1, 1, 1 )
   datetimeFormatDesc:SetText( "Datetime format template (press enter to apply)" )
 
   local datetimeFormat = CreateFrame( "EditBox", "KillTrackOptDateTimeFormat", panel, "InputBoxTemplate" )
   datetimeFormat:SetHeight( 22 )
   datetimeFormat:SetWidth( 160 )
-  datetimeFormat:SetPoint( "LEFT", datetimeFormatDesc, "RIGHT", 8, 0 )
+  datetimeFormat:SetPoint( "Left", datetimeFormatDesc, "Right", 8, 0 )
   datetimeFormat:SetAutoFocus( false )
   datetimeFormat:EnableMouse( true )
   local datetimeFormatPreview = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
-  datetimeFormatPreview:SetPoint( "TOPLEFT", datetimeFormat, "BOTTOMLEFT", 0, -2 )
+  datetimeFormatPreview:SetPoint( "TopLeft", datetimeFormat, "BottomLeft", 0, -2 )
   datetimeFormatPreview:SetTextColor( 1, 1, 1 )
   datetimeFormatPreview:SetText( "Preview:" )
   local datetimeFormatPreviewValue = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
-  datetimeFormatPreviewValue:SetPoint( "LEFT", datetimeFormatPreview, "RIGHT", 8, 0 )
+  datetimeFormatPreviewValue:SetPoint( "Left", datetimeFormatPreview, "Right", 8, 0 )
   datetimeFormatPreviewValue:SetTextColor( 1, 1, 1 )
   datetimeFormatPreviewValue:SetText( KTT:FormatDateTime() --[[@as string]] )
 
@@ -275,13 +275,13 @@ function Opt:CreateFrame()
     datetimeFormat:SetText( KT.Global.DATETIME_FORMAT )
   end )
   datetimeFormatReset:SetWidth( 80 )
-  datetimeFormatReset:SetPoint( "LEFT", datetimeFormat, "RIGHT", 5, 0 )
+  datetimeFormatReset:SetPoint( "Left", datetimeFormat, "Right", 5, 0 )
 
   local close = button( "Close", "Clear the database of ALL mob entries", function()
     Opt:Hide()
   end )
   close:SetWidth( 100 )
-  close:SetPoint( "BOTTOM", panel, "BOTTOM", 0, 8 )
+  close:SetPoint( "Bottom", panel, "Bottom", 0, 8 )
 
 
   local function init()
