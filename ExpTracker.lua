@@ -26,7 +26,6 @@ local _G = getfenv()
 local ET = {
   ---@type string[]
   Strings = {
-    ---@diagnostic disable: undefined-field
     _G.COMBATLOG_XPGAIN_EXHAUSTION1,           -- %s dies, you gain %d experience. (%s exp %s bonus)
     _G.COMBATLOG_XPGAIN_EXHAUSTION1_GROUP,     -- %s dies, you gain %d experience. (%s exp %s bonus, +%d group bonus)
     _G.COMBATLOG_XPGAIN_EXHAUSTION1_RAID,      -- %s dies, you gain %d experience. (%s exp %s bonus, -%d raid penalty)
@@ -42,7 +41,6 @@ local ET = {
     _G.COMBATLOG_XPGAIN_FIRSTPERSON,           -- %s dies, you gain %d experience.
     _G.COMBATLOG_XPGAIN_FIRSTPERSON_GROUP,     -- %s dies, you gain %d experience. (+%d group bonus)
     _G.COMBATLOG_XPGAIN_FIRSTPERSON_RAID       -- %s dies, you gain %d experience. (-%d raid penalty)
-    ---@diagnostic enable: undefined-field
   }
 }
 
@@ -53,7 +51,6 @@ local initialized = false
 local function Initialize()
   for i = 1, getn( ET.Strings ) do
     ET.Strings[ i ] = string.gsub( string.gsub( string.gsub( ET.Strings[ i ], "([%(%)])", "%%%1" ), "%%%d?$?s", "(.-)" ), "%%%d?$?d", "(%%d+)" )
-    --        ET.Strings[i] = ET.Strings[i]:gsub("([%(%)])", "%%%1"):gsub("%%%d?$?s", "(.-)"):gsub("%%%d?$?d", "(%%d+)")
   end
   initialized = true
 end

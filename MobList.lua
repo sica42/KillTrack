@@ -162,7 +162,7 @@ local function CreateRow( container, previous )
 end
 
 function ML:Show()
-  ML.Zones = {}
+  ML.Zones = nil
   if not created then
     ML:Create()
   end

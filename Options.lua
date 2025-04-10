@@ -84,8 +84,8 @@ function Opt:CreateFrame()
   frame:EnableMouse( true )
   frame:SetMovable( true )
   frame:SetPoint( "Center", UIParent, "Center", 0, 0 )
-  frame:SetWidth( 500 )
-  frame:SetHeight( 400 )
+  frame:SetWidth( 450 )
+  frame:SetHeight( 420 )
   frame:SetBackdrop( {
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
     edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
@@ -141,12 +141,13 @@ function Opt:CreateFrame()
   local thresholdDesc = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
   thresholdDesc:SetPoint( "TopLeft", printNew, "BottomLeft", 0, -8 )
   thresholdDesc:SetTextColor( 1, 1, 1 )
-  thresholdDesc:SetText( "Threshold for displaying kill achievements (press enter to apply)" )
+  thresholdDesc:SetJustifyH( "Left" )
+  thresholdDesc:SetText( "Threshold for displaying kill achievements\n(press enter to apply)" )
 
   local threshold = CreateFrame( "EditBox", "KillTrackOptThreshold", panel, "InputBoxTemplate" )
   threshold:SetHeight( 22 )
-  threshold:SetWidth( 150 )
-  threshold:SetPoint( "Left", thresholdDesc, "Right", 8, 0 )
+  threshold:SetWidth( 70 )
+  threshold:SetPoint( "Left", thresholdDesc, "Right", 14, 0 )
   threshold:SetAutoFocus( false )
   threshold:EnableMouse( true )
   threshold:SetScript( "OnEditFocusGained", function()
@@ -161,15 +162,14 @@ function Opt:CreateFrame()
       if not enter then
         KT:Msg( "Updated threshold value!" )
       end
-      box:ClearFocus()
       box:SetText( KT.Global.ACHIEV_THRESHOLD )
     else
       box:SetText( KT.Global.ACHIEV_THRESHOLD )
       box:HighlightText()
     end
   end
-  threshold:SetScript( "OnEditFocusLost", function( box ) setThreshold( box ) end )
-  threshold:SetScript( "OnEnterPressed", function( box ) setThreshold( box, true ) end )
+  threshold:SetScript( "OnEditFocusLost", function() setThreshold( this ) end )
+  threshold:SetScript( "OnEnterPressed", function() setThreshold( this, true ) end )
 
   local showTarget = button( "Target", "Show information about the currently selected target",
     function()
@@ -182,7 +182,6 @@ function Opt:CreateFrame()
 
   local list = button( "List", "Open the mob database",
     function()
-      --HideBlizzOptions()
       KT.MobList:Show()
     end )
   list:SetWidth( 150 )
@@ -215,16 +214,17 @@ function Opt:CreateFrame()
   local datetimeFormatDesc = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
   datetimeFormatDesc:SetPoint( "TopLeft", disableRaids, "BottomLeft", 0, -8 )
   datetimeFormatDesc:SetTextColor( 1, 1, 1 )
-  datetimeFormatDesc:SetText( "Datetime format template (press enter to apply)" )
+  datetimeFormatDesc:SetJustifyH( "Left" )
+  datetimeFormatDesc:SetText( "Datetime format template\n(press enter to apply)" )
 
   local datetimeFormat = CreateFrame( "EditBox", "KillTrackOptDateTimeFormat", panel, "InputBoxTemplate" )
   datetimeFormat:SetHeight( 22 )
   datetimeFormat:SetWidth( 160 )
-  datetimeFormat:SetPoint( "Left", datetimeFormatDesc, "Right", 8, 0 )
+  datetimeFormat:SetPoint( "Left", datetimeFormatDesc, "Right", 14, 0 )
   datetimeFormat:SetAutoFocus( false )
   datetimeFormat:EnableMouse( true )
   local datetimeFormatPreview = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
-  datetimeFormatPreview:SetPoint( "TopLeft", datetimeFormat, "BottomLeft", 0, -2 )
+  datetimeFormatPreview:SetPoint( "TopLeft", datetimeFormat, "BottomLeft", -5, -2 )
   datetimeFormatPreview:SetTextColor( 1, 1, 1 )
   datetimeFormatPreview:SetText( "Preview:" )
   local datetimeFormatPreviewValue = panel:CreateFontString( nil, "ARTWORK", "GameFontNormal" )
@@ -255,7 +255,6 @@ function Opt:CreateFrame()
     if not enter then
       KT:Msg( "Updated datetime format!" )
     end
-    box:ClearFocus()
     box:SetText( KT.Global.DATETIME_FORMAT )
   end
   datetimeFormat:SetScript( "OnEditFocusLost", function() setDateTimeFormat( this ) end )

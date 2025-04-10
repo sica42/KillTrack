@@ -73,13 +73,13 @@ local function SetupFrame()
   ---@diagnostic disable-next-line: inject-field
   frame.currentLabel = frame:CreateFontString( nil, "OVERLAY", nil )
   frame.currentLabel:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
-  frame.currentLabel:SetPoint( "TopLeft", frame, "TopLeft", 6, -6 )
+  frame.currentLabel:SetPoint( "TopLeft", frame, "TopLeft", 8, -8 )
   frame.currentLabel:SetText( "Number of kills:" )
 
   ---@diagnostic disable-next-line: inject-field
   frame.currentCount = frame:CreateFontString( nil, "OVERLAY", nil )
   frame.currentCount:SetFont( "Fonts\\FRIZQT__.TTF", 10, "" )
-  frame.currentCount:SetPoint( "TopRight", frame, "TopRight", -6, -6 )
+  frame.currentCount:SetPoint( "TopRight", frame, "TopRight", -8, -8 )
   frame.currentCount:SetText( "0" )
 
   ---@diagnostic disable-next-line: inject-field
