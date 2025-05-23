@@ -201,6 +201,9 @@ function KT.Events.PLAYER_LOGIN()
     KT:Msg( "AddOn Loaded!" )
   end
 
+  ---@diagnostic disable-next-line: undefined-global
+  KT.pfUI = IsAddOnLoaded( "pfUI" ) and pfUI and pfUI.api and pfUI.env and pfUI.env.C
+
   KT:ToggleCountMode( true )
 end
 

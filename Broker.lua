@@ -35,7 +35,7 @@ local UPDATE = 1
 local t = 0
 
 local ldb = LibStub:GetLibrary( "LibDataBroker-1.1" )
-local icon = LibStub:GetLibrary( "LibDBIcon-1.1" )
+local icon = LibStub:GetLibrary( "LibDBIcon-1.0" )
 
 local frame = CreateFrame( "Frame" )
 local tooltipVisible = false

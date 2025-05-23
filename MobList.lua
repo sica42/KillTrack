@@ -44,15 +44,18 @@ local HEADER_TOP = -90
 local ROW_HEIGHT = 15
 local ROW_COUNT = 27
 local ROW_TEXT_PADDING = 4
-local NAME_WIDTH = 300
-local CHAR_WIDTH = 76
-local GLOBAL_WIDTH = 50
+local NAME_WIDTH = KT.pfUI and 300 or 271
+local CHAR_WIDTH = KT.pfUI and 76 or 90
+local GLOBAL_WIDTH = KT.pfUI and 50 or 65
 local SCROLL_WIDTH = 27 -- Scrollbar width
 local STATUS_TEXT = "Showing entries %d through %d out of %d total (%d hidden)"
 
 ---@type Frame
 local frame = nil
 local created = false
+
+---@type ScrollDropdown
+local scroll_drop = LibStub:GetLibrary( "LibScrollDrop-1.0" )
 
 -- Frame helper functions
 
@@ -62,7 +65,6 @@ local created = false
 ---@param parent table
 ---@return Header
 local function CreateHeader( parent )
-
   local h = CreateFrame( "Button", nil, parent )
   ---@cast h Header
 
@@ -95,7 +97,7 @@ local function CreateHeader( parent )
   bgm:SetTexCoord( 0.07815, 0.90625, 0, 0.75 )
 
   local hl = h:CreateTexture()
-  h:SetHighlightTexture( "Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight")
+  h:SetHighlightTexture( "Interface\\PaperDollInfoFrame\\UI-Character-Tab-Highlight" )
   hl:SetPoint( "TopLeft", bgl, "TopLeft", -2, 5 )
   hl:SetPoint( "BottomRight", bgr, "BottomRight", 2, -7 )
 
@@ -194,7 +196,7 @@ function ML:Create()
   frame:SetWidth( FRAME_WIDTH )
   frame:SetHeight( FRAME_HEIGHT )
 
-  table.insert( UISpecialFrames, frame:GetName())
+  table.insert( UISpecialFrames, frame:GetName() )
 
   local bd = {
     bgFile = "Interface\\DialogFrame\\UI-DialogBox-Background",
@@ -252,8 +254,10 @@ function ML:Create()
     KT:ShowReset()
   end )
 
+  local font = KT.pfUI and "GameFontNormal" or "GameFontNormalSmall"
+
   ---@diagnostic disable-next-line: inject-field
-  frame.helpLabel = frame:CreateFontString( nil, "OVERLAY", "GameFontNormal" )
+  frame.helpLabel = frame:CreateFontString( nil, "OVERLAY", font )
   frame.helpLabel:SetWidth( 300 )
   frame.helpLabel:SetHeight( 32 )
   frame.helpLabel:SetPoint( "TopLeft", frame, "TopLeft", 120, -28 )
@@ -291,22 +295,54 @@ function ML:Create()
   end )
 
   ---@diagnostic disable-next-line: inject-field
-  frame.searchTipLabel = frame:CreateFontString( nil, "OVERLAY", "GameFontNormal" )
-  frame.searchTipLabel:SetWidth( 110 )
+  frame.searchTipLabel = frame:CreateFontString( nil, "OVERLAY", font )
+  frame.searchTipLabel:SetWidth( 125 )
   frame.searchTipLabel:SetHeight( 16 )
   frame.searchTipLabel:SetPoint( "Left", frame.searchBox, "Right", 5, 0 )
   frame.searchTipLabel:SetJustifyH( "Left" )
   frame.searchTipLabel:SetText( "(Supports Lua patterns)" )
 
-  ---@diagnostic disable-next-line: inject-field
-  frame.zoneDropDown = CreateFrame( "Frame", "KillTrackMobListZoneDropDown", frame, "UIDropDownMenuTemplate" )
-  frame.zoneDropDown:SetWidth( 100 )
-  frame.zoneDropDown:SetHeight( 16 )
-  frame.zoneDropDown:SetPoint( "Left", frame.searchTipLabel, "Right", 3, 0 )
-  UIDropDownMenu_SetWidth( 100, frame.zoneDropDown )
-  UIDropDownMenu_SetText( "All zones", frame.zoneDropDown )
+  local dropdown = scroll_drop:New( frame, {
+    default_text = "All zones",
+    dropdown_style = "classic",
+    label_on_select = "value",
+    width = 120
+  } )
 
-  UIDropDownMenu_Initialize( frame.zoneDropDown, ML.ZoneDropDownMenu )
+  dropdown:SetPoint( "Left", frame.searchTipLabel, "Right", 17, 0 )
+  dropdown:SetItems( function()
+    local zone_data = {}
+    local list = {}
+    for _, mob in pairs( KT.Global.MOBS ) do
+      if mob.ZoneName then
+        zone_data[ mob.ZoneName ] = zone_data[ mob.ZoneName ] and zone_data[ mob.ZoneName ] + 1 or 1
+      end
+    end
+
+    table.insert( list, {
+      value = nil,
+      text = "All Zones"
+    })
+
+    for zone, count in pairs( zone_data ) do
+      table.insert( list, {
+        value = zone,
+        text = zone .. " (" .. count .. ")"
+      } )
+    end
+
+    table.sort( list, function(a,b)
+      if not a.value then return true end
+      if not b.value then return false end
+      return a.value < b.value
+    end )
+
+    return list
+  end, function( value, index )
+    LastZone = value
+    ML:UpdateMobs( Sort, LastFilter )
+    ML:UpdateEntries( LastOffset )
+  end )
 
   ---@diagnostic disable-next-line: inject-field
   frame.nameHeader = CreateHeader( frame )
@@ -396,41 +432,6 @@ function ML:Create()
   self:UpdateEntries( LastOffset )
 
   created = true
-end
-
-function ML.ZoneDropDownMenu()
-  local info = {}
-  info.notCheckable = 1
-  info.text = "All zones"
-  info.arg1 = info.text
-  info.arg2 = "All"
-  info.func = function( zone, is_all )
-    LastZone = zone
-    if is_all then LastZone = nil end
-    UIDropDownMenu_SetText( zone, frame.zoneDropDown )
-
-    ML:UpdateMobs( Sort, LastFilter )
-    ML:UpdateEntries( LastOffset )
-  end
-  UIDropDownMenu_AddButton( info )
-
-  if not ML.Zones and Mobs then
-    ML.Zones = {}
-    for _, mob in pairs( KT.Global.MOBS ) do
-      if mob.ZoneName then
-        ML.Zones[ mob.ZoneName ] = ML.Zones[ mob.ZoneName ] and ML.Zones[ mob.ZoneName ] + 1 or 1
-      end
-    end
-  end
-
-  if ML.Zones then
-    for zone, count in pairs( ML.Zones ) do
-      info.text = zone .. " (" .. count .. ")"
-      info.arg1 = zone
-      info.arg2 = nil
-      UIDropDownMenu_AddButton( info )
-    end
-  end
 end
 
 ---@param sort KillTrackMobSortMode?

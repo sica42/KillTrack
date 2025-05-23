@@ -11,12 +11,16 @@
     "time",
     "FauxScrollFrame_GetOffset",
     "FauxScrollFrame_OnVerticalScroll",
-    "FauxScrollFrame_Update",    
+    "FauxScrollFrame_Update",
+    "GameFontHighlight",
+    "GameFontHighlightSmall",
     "LibStub",
     "RaidWarningFrame",
-    "SELFKILLOTHER",    
+    "SELFKILLOTHER",
     "StaticPopup_Show",
     "StaticPopupDialogs",
+    "TOOLTIP_DEFAULT_BACKGROUND_COLOR",
+    "TOOLTIP_DEFAULT_COLOR",
     "UNITDIESOTHER"
   ],
   "Lua.runtime.version": "Lua 5.1",
@@ -25,7 +29,7 @@
     "libs"
   ],
   "type.inferParamType": true,
-  "workspace.library": [ "wow-api-type-definitions" ],
+  "workspace.library": [ "../wow-api-type-definitions" ],
   "diagnostics.disable": [],
   "Lua.hint.enable": true
 }

@@ -71,7 +71,7 @@ function C:HandleCommand( command, args )
   if cmd then
     cmd( args )
   else
-    KT:Msg( ("%q is not a valid command."):format( command ) )
+    KT:Msg( string.format("%q is not a valid command.", command ) )
   end
 end
 
